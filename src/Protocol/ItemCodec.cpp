@@ -4,6 +4,15 @@
 
 namespace {
     const std::string BLOCKING_ID = "minecraft:shield";
+    const uint32_t MAX_BLOCK_LIST_ENTRIES = 250;
+
+    uint32_t readBlockListLength(ReadOnlyBinaryStream &stream) {
+        const uint32_t length = stream.getLInt();
+        if (length > MAX_BLOCK_LIST_ENTRIES)
+            throw BinaryDataException("Item block list of " + std::to_string(length) + " entries exceeds "
+                                      + std::to_string(MAX_BLOCK_LIST_ENTRIES));
+        return length;
+    }
 
     Tag networkItemTag(const ItemStack &item) {
         if (item.mDamage <= 0)
@@ -101,13 +110,13 @@ ItemStack ItemCodec::readItemInstance(ReadOnlyBinaryStream &stream, const Packet
         item.mTag = NbtIo::readTag(userData, NbtVariant::LittleEndian);
     }
 
-    uint32_t canPlaceLength = userData.getLInt();
+    uint32_t canPlaceLength = readBlockListLength(userData);
     item.mCanPlace.reserve(canPlaceLength);
     for (uint32_t i = 0; i < canPlaceLength; i++) {
         item.mCanPlace.push_back(userData.get(userData.getLShort()));
     }
 
-    uint32_t canBreakLength = userData.getLInt();
+    uint32_t canBreakLength = readBlockListLength(userData);
     item.mCanBreak.reserve(canBreakLength);
     for (uint32_t i = 0; i < canBreakLength; i++) {
         item.mCanBreak.push_back(userData.get(userData.getLShort()));
@@ -216,13 +225,13 @@ ItemStack ItemCodec::readNetworkItemStackDescriptor(ReadOnlyBinaryStream &stream
         item.mTag = NbtIo::readTag(userData, NbtVariant::LittleEndian);
     }
 
-    uint32_t canPlaceLength = userData.getLInt();
+    uint32_t canPlaceLength = readBlockListLength(userData);
     item.mCanPlace.reserve(canPlaceLength);
     for (uint32_t i = 0; i < canPlaceLength; i++) {
         item.mCanPlace.push_back(userData.get(userData.getLShort()));
     }
 
-    uint32_t canBreakLength = userData.getLInt();
+    uint32_t canBreakLength = readBlockListLength(userData);
     item.mCanBreak.reserve(canBreakLength);
     for (uint32_t i = 0; i < canBreakLength; i++) {
         item.mCanBreak.push_back(userData.get(userData.getLShort()));
