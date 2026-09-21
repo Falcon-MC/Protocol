@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-	<img src="https://img.shields.io/badge/minecraft-v1.26.50%20(Bedrock)-56383E" alt="Minecraft">
+	<img src="https://img.shields.io/badge/minecraft-v1.26.51%20(Bedrock)-56383E" alt="Minecraft">
 	<img src="https://img.shields.io/badge/protocol-2193-blue" alt="Protocol">
 	<img src="https://img.shields.io/badge/language-C%2B%2B17-00599C" alt="C++17">
 </p>
@@ -27,8 +27,9 @@ The binary format of the Bedrock protocol, with no game logic attached. It is th
   more in `Protocol/Types`
 - **Codecs** - items (inventory and entity formats), entity metadata, skins, inventory transactions,
   camera and data store
-- **NBT** - `Tag` and `NbtIo` with big endian, little endian and network (varint) encodings
-- **Utilities** - `BinaryStream` / `ReadOnlyBinaryStream`, a JSON parser, math types and logging
+- **Utilities** - a JSON parser, math types and logging
+
+NBT tags and binary streams come from [NBT](https://github.com/Falcon-MC/NBT), fetched automatically.
 
 ## Usage
 
@@ -62,6 +63,9 @@ cmake --build build
 
 - [Falcon](https://github.com/Falcon-MC/Falcon) - the server
 - [Network](https://github.com/Falcon-MC/Network) - RakNet and NetherNet transport
+- [NBT](https://github.com/Falcon-MC/NBT) - NBT tags and binary streams
+- [BedrockData](https://github.com/Falcon-MC/BedrockData) - game data files, versioned by protocol
+- [DataGen](https://github.com/Falcon-MC/DataGen) - generates the game data from a dedicated server
 
 ## Licensing information
 
