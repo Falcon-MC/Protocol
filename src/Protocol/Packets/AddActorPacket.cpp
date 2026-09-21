@@ -17,7 +17,10 @@ void AddActorPacket::write(BinaryStream &stream, const PacketCodecContext &conte
 
     stream.putArrayLength((uint32_t) mAttributes.size());
     for (const AttributeData &attribute: mAttributes) {
-        EntityCodec::writeAttribute(stream, attribute);
+        stream.putString(attribute.mName);
+        stream.putLFloat(attribute.mMinimum);
+        stream.putLFloat(attribute.mValue);
+        stream.putLFloat(attribute.mMaximum);
     }
 
     EntityCodec::writeEntityData(stream, mMetadata);
@@ -42,7 +45,15 @@ void AddActorPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext
     uint32_t attributeCount = stream.getArrayLength();
     mAttributes.reserve(attributeCount);
     for (uint32_t i = 0; i < attributeCount; i++) {
-        mAttributes.push_back(EntityCodec::readAttribute(stream));
+        AttributeData attribute;
+        attribute.mName = stream.getString();
+        attribute.mMinimum = stream.getLFloat();
+        attribute.mValue = stream.getLFloat();
+        attribute.mMaximum = stream.getLFloat();
+        attribute.mDefaultMinimum = attribute.mMinimum;
+        attribute.mDefaultMaximum = attribute.mMaximum;
+        attribute.mDefaultValue = attribute.mValue;
+        mAttributes.push_back(attribute);
     }
 
     mMetadata = EntityCodec::readEntityData(stream);
