@@ -4,8 +4,8 @@
 
 enum class CommandParamType : int32_t {
     Int = 1,
-    Float = 2,
-    Value = 3,
+    Float = 3,
+    Value = 4,
     WildcardInt = 5,
     Operator = 6,
     CompareOperator = 7,
