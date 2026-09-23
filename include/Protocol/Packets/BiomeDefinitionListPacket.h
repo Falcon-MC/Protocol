@@ -3,6 +3,7 @@
 #include "Protocol/Packet.h"
 #include "Protocol/Types/BiomeDefinitionData.h"
 
+#include <string>
 #include <vector>
 
 class BiomeDefinitionListPacket : public Packet {
@@ -22,4 +23,5 @@ public:
     void handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const override;
 
     std::vector<BiomeDefinitionData> mBiomes;
+    std::vector<std::string> mStrings;
 };
