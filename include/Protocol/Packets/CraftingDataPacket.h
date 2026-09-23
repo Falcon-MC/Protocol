@@ -23,5 +23,14 @@ public:
 
     std::vector<CraftingRecipeEntry> mShapedRecipes;
     std::vector<CraftingRecipeEntry> mShapelessRecipes;
+    std::vector<MultiRecipeEntry> mMultiRecipes;
+    std::vector<CraftingRecipeEntry> mUserDataShapelessRecipes;
+    std::vector<CraftingRecipeEntry> mShapelessChemistryRecipes;
+    std::vector<CraftingRecipeEntry> mShapedChemistryRecipes;
+    std::vector<SmithingRecipeEntry> mSmithingTransformRecipes;
+    std::vector<SmithingRecipeEntry> mSmithingTrimRecipes;
+    std::vector<PotionMixEntry> mPotionMixes;
+    std::vector<PotionContainerMixEntry> mPotionContainerMixes;
+    std::vector<MaterialReducerEntry> mMaterialReducers;
     bool mCleanRecipes = false;
 };

@@ -22,9 +22,80 @@ namespace json {
         Type mType = Type::Null;
         bool mBoolean = false;
         double mNumber = 0.0;
+        bool mInteger = false;
         std::string mString;
         std::vector<std::unique_ptr<Value>> mArray;
         std::unordered_map<std::string, std::unique_ptr<Value>> mObject;
+        std::vector<std::string> mKeys;
+
+        static std::unique_ptr<Value> ofNull() {
+            return std::make_unique<Value>();
+        }
+
+        static std::unique_ptr<Value> ofBoolean(bool value) {
+            auto result = std::make_unique<Value>();
+            result->mType = Type::Boolean;
+            result->mBoolean = value;
+            return result;
+        }
+
+        static std::unique_ptr<Value> ofInteger(int64_t value) {
+            auto result = std::make_unique<Value>();
+            result->mType = Type::Number;
+            result->mNumber = (double) value;
+            result->mInteger = true;
+            return result;
+        }
+
+        static std::unique_ptr<Value> ofNumber(double value) {
+            auto result = std::make_unique<Value>();
+            result->mType = Type::Number;
+            result->mNumber = value;
+            return result;
+        }
+
+        static std::unique_ptr<Value> ofString(std::string value) {
+            auto result = std::make_unique<Value>();
+            result->mType = Type::String;
+            result->mString = std::move(value);
+            return result;
+        }
+
+        static std::unique_ptr<Value> ofArray() {
+            auto result = std::make_unique<Value>();
+            result->mType = Type::Array;
+            return result;
+        }
+
+        static std::unique_ptr<Value> ofObject() {
+            auto result = std::make_unique<Value>();
+            result->mType = Type::Object;
+            return result;
+        }
+
+        void set(const std::string &key, std::unique_ptr<Value> value) {
+            if (mObject.find(key) == mObject.end())
+                mKeys.push_back(key);
+            mObject[key] = std::move(value);
+        }
+
+        void push(std::unique_ptr<Value> value) {
+            mArray.push_back(std::move(value));
+        }
+
+        std::unique_ptr<Value> clone() const {
+            auto result = std::make_unique<Value>();
+            result->mType = mType;
+            result->mBoolean = mBoolean;
+            result->mNumber = mNumber;
+            result->mInteger = mInteger;
+            result->mString = mString;
+            for (const std::unique_ptr<Value> &element: mArray)
+                result->mArray.push_back(element->clone());
+            for (const std::string &key: mKeys)
+                result->set(key, mObject.at(key)->clone());
+            return result;
+        }
 
         bool isObject() const { return mType == Type::Object; }
 
@@ -121,7 +192,7 @@ namespace json {
                 std::unique_ptr<Value> value = parseValue();
                 if (value == nullptr)
                     return nullptr;
-                result->mObject[std::move(key)] = std::move(value);
+                result->set(key, std::move(value));
                 skipWhitespace();
                 if (consume('}'))
                     return result;
@@ -191,12 +262,21 @@ namespace json {
                         case 't':
                             result.push_back('\t');
                             break;
-                        case 'u':
-                            if (mPosition + 4 > mSource.size())
+                        case 'u': {
+                            uint32_t codePoint = 0;
+                            if (!parseHex(codePoint))
                                 return false;
-                            mPosition += 4;
-                            result.push_back('?');
+                            if (codePoint >= 0xD800 && codePoint <= 0xDBFF && mPosition + 1 < mSource.size()
+                                && mSource[mPosition] == '\\' && mSource[mPosition + 1] == 'u') {
+                                mPosition += 2;
+                                uint32_t low = 0;
+                                if (!parseHex(low))
+                                    return false;
+                                codePoint = 0x10000 + ((codePoint - 0xD800) << 10) + (low - 0xDC00);
+                            }
+                            appendUtf8(result, codePoint);
                             break;
+                        }
                         default:
                             return false;
                     }
@@ -207,6 +287,44 @@ namespace json {
                 }
             }
             return false;
+        }
+
+        bool parseHex(uint32_t &outValue) {
+            if (mPosition + 4 > mSource.size())
+                return false;
+
+            outValue = 0;
+            for (int i = 0; i < 4; i++) {
+                const char digit = mSource[mPosition++];
+                outValue <<= 4;
+                if (digit >= '0' && digit <= '9')
+                    outValue |= (uint32_t) (digit - '0');
+                else if (digit >= 'a' && digit <= 'f')
+                    outValue |= (uint32_t) (digit - 'a' + 10);
+                else if (digit >= 'A' && digit <= 'F')
+                    outValue |= (uint32_t) (digit - 'A' + 10);
+                else
+                    return false;
+            }
+            return true;
+        }
+
+        static void appendUtf8(std::string &result, uint32_t codePoint) {
+            if (codePoint < 0x80) {
+                result.push_back((char) codePoint);
+            } else if (codePoint < 0x800) {
+                result.push_back((char) (0xC0 | (codePoint >> 6)));
+                result.push_back((char) (0x80 | (codePoint & 0x3F)));
+            } else if (codePoint < 0x10000) {
+                result.push_back((char) (0xE0 | (codePoint >> 12)));
+                result.push_back((char) (0x80 | ((codePoint >> 6) & 0x3F)));
+                result.push_back((char) (0x80 | (codePoint & 0x3F)));
+            } else {
+                result.push_back((char) (0xF0 | (codePoint >> 18)));
+                result.push_back((char) (0x80 | ((codePoint >> 12) & 0x3F)));
+                result.push_back((char) (0x80 | ((codePoint >> 6) & 0x3F)));
+                result.push_back((char) (0x80 | (codePoint & 0x3F)));
+            }
         }
 
         std::unique_ptr<Value> parseLiteral(const char *literal, Value::Type type, bool boolean) {
@@ -222,10 +340,14 @@ namespace json {
 
         std::unique_ptr<Value> parseNumber() {
             const size_t start = mPosition;
+            bool integer = true;
             if (mPosition < mSource.size() && (mSource[mPosition] == '-' || mSource[mPosition] == '+'))
                 ++mPosition;
             while (mPosition < mSource.size() && std::isdigit((unsigned char) mSource[mPosition]))
                 ++mPosition;
+            if (mPosition < mSource.size() && (mSource[mPosition] == '.' || mSource[mPosition] == 'e'
+                                               || mSource[mPosition] == 'E'))
+                integer = false;
             if (mPosition < mSource.size() && mSource[mPosition] == '.') {
                 ++mPosition;
                 while (mPosition < mSource.size() && std::isdigit((unsigned char) mSource[mPosition]))
@@ -250,6 +372,7 @@ namespace json {
             auto result = std::make_unique<Value>();
             result->mType = Value::Type::Number;
             result->mNumber = value;
+            result->mInteger = integer;
             return result;
         }
 
