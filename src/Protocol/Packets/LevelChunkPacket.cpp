@@ -4,7 +4,7 @@
 
 LevelChunkPacket::LevelChunkPacket()
         : mChunkX(0), mChunkZ(0), mDimension(0), mSubChunksLength(0), mCachingEnabled(false),
-          mRequestSubChunks(false), mSubChunkLimit(0) {}
+          mRequestSubChunks(false), mSubChunkLimit(0), mClientBiomeUpdate(false) {}
 
 void LevelChunkPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
     stream.putVarInt(mChunkX);
@@ -23,6 +23,7 @@ void LevelChunkPacket::write(BinaryStream &stream, const PacketCodecContext &con
         stream.putLLong(blobId);
 
     stream.putByteArray(mData);
+    stream.putBool(mClientBiomeUpdate);
 }
 
 void LevelChunkPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
@@ -44,6 +45,7 @@ void LevelChunkPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecConte
         mBlobIds.push_back(stream.getLLong());
 
     mData = stream.getByteArray();
+    mClientBiomeUpdate = stream.getBool();
 }
 
 void LevelChunkPacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {

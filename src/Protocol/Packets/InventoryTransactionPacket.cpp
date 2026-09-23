@@ -128,6 +128,7 @@ void InventoryTransactionPacket::write(BinaryStream &stream, const PacketCodecCo
             stream.putUnsignedVarLong((uint64_t) mRuntimeActorId);
             stream.putVarInt(mActionType);
             stream.putVarInt(mHotbarSlot);
+            stream.putByte((unsigned char) mHand);
             ItemCodec::writeNetworkItemStackDescriptor(stream, context, mItemInHand);
             stream.putVector3f(mPlayerPosition);
             stream.putVector3f(mClickPosition);
@@ -137,6 +138,7 @@ void InventoryTransactionPacket::write(BinaryStream &stream, const PacketCodecCo
             stream.putVarInt(mHotbarSlot);
             ItemCodec::writeNetworkItemStackDescriptor(stream, context, mItemInHand);
             stream.putVector3f(mHeadPosition);
+            stream.putByte((unsigned char) mHand);
             break;
         default:
             break;
@@ -182,6 +184,7 @@ void InventoryTransactionPacket::read(ReadOnlyBinaryStream &stream, const Packet
             mRuntimeActorId = (int64_t) stream.getUnsignedVarLong();
             mActionType = stream.getVarInt();
             mHotbarSlot = stream.getVarInt();
+            mHand = (HandSlot) stream.getByte();
             mItemInHand = ItemCodec::readNetworkItemStackDescriptor(stream, context);
             mPlayerPosition = stream.getVector3f();
             mClickPosition = stream.getVector3f();
@@ -191,6 +194,7 @@ void InventoryTransactionPacket::read(ReadOnlyBinaryStream &stream, const Packet
             mHotbarSlot = stream.getVarInt();
             mItemInHand = ItemCodec::readNetworkItemStackDescriptor(stream, context);
             mHeadPosition = stream.getVector3f();
+            mHand = (HandSlot) stream.getByte();
             break;
         default:
             break;

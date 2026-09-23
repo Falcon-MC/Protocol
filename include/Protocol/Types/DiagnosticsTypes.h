@@ -21,7 +21,9 @@ public:
     std::string mEntity;
     int64_t mTimeInNs = 0;
     int8_t mPercentOfTotal = 0;
+    bool mHasPosition = false;
     Vector3f mPosition;
+    bool mHasDimension = false;
     std::string mDimension;
 };
 

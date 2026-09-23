@@ -26,6 +26,7 @@ public:
         int64_t mActorId = 0;
         std::string mName;
         std::string mXuid;
+        std::string mPlayFabId;
         std::string mPlatformChatId;
         int32_t mBuildPlatform = 0;
         SerializedSkin mSkin;

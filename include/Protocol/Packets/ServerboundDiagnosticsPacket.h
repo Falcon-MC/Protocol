@@ -33,6 +33,7 @@ public:
     std::vector<MemoryCategoryCounter> mMemoryCategoryValues;
     std::vector<EntityDiagnosticTimingInfo> mEntityDiagnostics;
     std::vector<SystemDiagnosticTimingInfo> mSystemDiagnostics;
+    bool mHasSystemCategories = false;
     std::vector<SystemCategory> mSystemCategories;
     std::vector<WhiskerScopeDataSummary> mWhiskerScopes;
 };

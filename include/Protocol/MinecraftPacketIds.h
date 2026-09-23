@@ -242,7 +242,12 @@ enum class MinecraftPacketIds : int {
     SendPartyDestinationCookie = 349,
     PartyDestinationCookieResponse = 350,
     SetPlayerFurnaceOptions = 351,
-    RecordStarted = 352
+    RecordStarted = 352,
+    ClientboundMatchmakingState = 353,
+    ServerboundStonecutterSetRecipe = 354,
+    ClientboundStonecutterSetRecipe = 355,
+    ServerboundMatchmakingCancel = 356,
+    SetPassengerOfBlock = 357
 };
 
 const char *toString(MinecraftPacketIds id);

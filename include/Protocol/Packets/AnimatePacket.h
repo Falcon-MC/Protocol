@@ -2,6 +2,9 @@
 
 #include "Protocol/Packet.h"
 
+#include <cstdint>
+#include <optional>
+
 class AnimatePacket : public Packet {
 public:
     static const MinecraftPacketIds ID = MinecraftPacketIds::Animate;
@@ -32,4 +35,5 @@ public:
     uint64_t mRuntimeActorId;
     float mData;
     std::string mSwingSource;
+    std::optional<uint8_t> mHand;
 };

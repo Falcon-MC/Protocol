@@ -13,6 +13,9 @@ void DimensionDataPacket::write(BinaryStream &stream, const PacketCodecContext &
         stream.putVarInt(definition.mGeneratorType);
         stream.putVarInt(definition.mDimensionType);
         stream.putUuid(definition.mPackId);
+        stream.putString(definition.mDefaultBiome);
+        stream.putVarInt(definition.mCloudHeight);
+        stream.putBool(definition.mRenderClouds);
     }
 }
 
@@ -27,6 +30,9 @@ void DimensionDataPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecCo
         definition.mGeneratorType = stream.getVarInt();
         definition.mDimensionType = stream.getVarInt();
         definition.mPackId = stream.getUuid();
+        definition.mDefaultBiome = stream.getString();
+        definition.mCloudHeight = stream.getVarInt();
+        definition.mRenderClouds = stream.getBool();
         mDefinitions.push_back(definition);
     }
 }

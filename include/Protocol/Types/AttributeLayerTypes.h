@@ -72,24 +72,40 @@ public:
     int32_t mValue = 0;
 };
 
+enum class EnvironmentAttributePayloadType : uint32_t {
+    Constant = 0,
+    Transition = 1,
+    NoiseTransition = 2,
+};
+
+class AttributeTransitionSettings {
+public:
+    uint32_t mTotalTransitionTicks = 0;
+    uint32_t mCurrentTransitionTicks = 0;
+    CameraEase mEasing = CameraEase::Linear;
+    std::string mClockName;
+};
+
+class AttributeNoiseTransitionSettings {
+public:
+    uint32_t mTotalTransitionTicks = 0;
+    uint32_t mCurrentTransitionTicks = 0;
+    CameraEase mEasing = CameraEase::Linear;
+    std::string mClockName;
+    uint32_t mLocalTransitionTicks = 0;
+    std::string mNoiseName;
+    NoiseAlignment mNoiseAlignment;
+};
+
 class EnvironmentAttributeData {
 public:
     std::string mAttributeName;
-
-    bool mHasFrom = false;
-    EnvironmentAttributeValue mFrom;
-
+    EnvironmentAttributePayloadType mPayloadType = EnvironmentAttributePayloadType::Constant;
     EnvironmentAttributeValue mAttribute;
-
-    bool mHasTo = false;
+    EnvironmentAttributeValue mFrom;
     EnvironmentAttributeValue mTo;
-
-    int32_t mCurrentTransitionTicks = 0;
-    int32_t mTotalTransitionTicks = 0;
-    CameraEase mEasing = CameraEase::Linear;
-    int32_t mLocalTransitionTicks = 0;
-    bool mNoiseTransition = false;
-    NoiseAlignment mNoiseAlignment;
+    AttributeTransitionSettings mTransitionSettings;
+    AttributeNoiseTransitionSettings mNoiseTransitionSettings;
 };
 
 class AttributeLayerData {

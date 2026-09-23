@@ -26,8 +26,9 @@ public:
     bool mDisableLegacyTitle = false;
     std::string mPostProcessFilter;
     std::string mScreenshotBorderPath;
-    bool mHasActorCapabilities = false;
-    bool mActorCapabilities = false;
+    bool mHasAgentCapabilities = false;
+    bool mHasCanModifyBlocks = false;
+    bool mCanModifyBlocks = false;
     bool mHasOverrideUri = false;
     std::string mOverrideUri;
     bool mQuizAttached = false;

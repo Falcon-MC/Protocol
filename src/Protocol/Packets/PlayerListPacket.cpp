@@ -10,6 +10,7 @@ namespace {
         stream.putVarLong(entry.mActorId);
         stream.putString(entry.mName);
         stream.putString(entry.mXuid);
+        stream.putString(entry.mPlayFabId);
         stream.putString(entry.mPlatformChatId);
         stream.putLInt((uint32_t) entry.mBuildPlatform);
         SkinCodec::writeSkin(stream, entry.mSkin);
@@ -24,6 +25,7 @@ namespace {
         entry.mActorId = stream.getVarLong();
         entry.mName = stream.getString();
         entry.mXuid = stream.getString();
+        entry.mPlayFabId = stream.getString();
         entry.mPlatformChatId = stream.getString();
         entry.mBuildPlatform = (int32_t) stream.getLInt();
         entry.mSkin = SkinCodec::readSkin(stream);

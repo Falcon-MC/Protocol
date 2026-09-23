@@ -466,6 +466,16 @@ const char *toString(MinecraftPacketIds id) {
             return "SetPlayerFurnaceOptions";
         case MinecraftPacketIds::RecordStarted:
             return "RecordStarted";
+        case MinecraftPacketIds::ClientboundMatchmakingState:
+            return "ClientboundMatchmakingState";
+        case MinecraftPacketIds::ServerboundStonecutterSetRecipe:
+            return "ServerboundStonecutterSetRecipe";
+        case MinecraftPacketIds::ClientboundStonecutterSetRecipe:
+            return "ClientboundStonecutterSetRecipe";
+        case MinecraftPacketIds::ServerboundMatchmakingCancel:
+            return "ServerboundMatchmakingCancel";
+        case MinecraftPacketIds::SetPassengerOfBlock:
+            return "SetPassengerOfBlock";
         default:
             return "Unknown";
     }

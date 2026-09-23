@@ -27,8 +27,12 @@ void ServerboundDiagnosticsPacket::write(BinaryStream &stream, const PacketCodec
         stream.putString(info.mEntity);
         stream.putLLong((uint64_t) info.mTimeInNs);
         stream.putByte((unsigned char) info.mPercentOfTotal);
-        stream.putVector3f(info.mPosition);
-        stream.putString(info.mDimension);
+        stream.putOptionalPresent(info.mHasPosition);
+        if (info.mHasPosition)
+            stream.putVector3f(info.mPosition);
+        stream.putOptionalPresent(info.mHasDimension);
+        if (info.mHasDimension)
+            stream.putString(info.mDimension);
     }
 
     stream.putArrayLength((uint32_t) mSystemDiagnostics.size());
@@ -39,10 +43,13 @@ void ServerboundDiagnosticsPacket::write(BinaryStream &stream, const PacketCodec
         stream.putByte((unsigned char) info.mPercentOfTotal);
     }
 
-    stream.putArrayLength((uint32_t) mSystemCategories.size());
-    for (const SystemCategory &info: mSystemCategories) {
-        stream.putString(info.mCategoryName);
-        stream.putLLong((uint64_t) info.mSystemIndex);
+    stream.putOptionalPresent(mHasSystemCategories);
+    if (mHasSystemCategories) {
+        stream.putArrayLength((uint32_t) mSystemCategories.size());
+        for (const SystemCategory &info: mSystemCategories) {
+            stream.putString(info.mCategoryName);
+            stream.putLLong((uint64_t) info.mSystemIndex);
+        }
     }
 
     stream.putArrayLength((uint32_t) mWhiskerScopes.size());
@@ -83,8 +90,12 @@ void ServerboundDiagnosticsPacket::read(ReadOnlyBinaryStream &stream, const Pack
         info.mEntity = stream.getString();
         info.mTimeInNs = (int64_t) stream.getLLong();
         info.mPercentOfTotal = (int8_t) stream.getByte();
-        info.mPosition = stream.getVector3f();
-        info.mDimension = stream.getString();
+        info.mHasPosition = stream.getOptionalPresent();
+        if (info.mHasPosition)
+            info.mPosition = stream.getVector3f();
+        info.mHasDimension = stream.getOptionalPresent();
+        if (info.mHasDimension)
+            info.mDimension = stream.getString();
         mEntityDiagnostics.push_back(info);
     }
 
@@ -99,13 +110,16 @@ void ServerboundDiagnosticsPacket::read(ReadOnlyBinaryStream &stream, const Pack
         mSystemDiagnostics.push_back(info);
     }
 
-    uint32_t categoryCount = stream.getArrayLength();
-    mSystemCategories.reserve(categoryCount);
-    for (uint32_t i = 0; i < categoryCount; i++) {
-        SystemCategory info;
-        info.mCategoryName = stream.getString();
-        info.mSystemIndex = (int64_t) stream.getLLong();
-        mSystemCategories.push_back(info);
+    mHasSystemCategories = stream.getOptionalPresent();
+    if (mHasSystemCategories) {
+        uint32_t categoryCount = stream.getArrayLength();
+        mSystemCategories.reserve(categoryCount);
+        for (uint32_t i = 0; i < categoryCount; i++) {
+            SystemCategory info;
+            info.mCategoryName = stream.getString();
+            info.mSystemIndex = (int64_t) stream.getLLong();
+            mSystemCategories.push_back(info);
+        }
     }
 
     uint32_t whiskerCount = stream.getArrayLength();

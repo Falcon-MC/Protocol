@@ -15,13 +15,6 @@ namespace {
     const std::array<std::string, 5> COLOR_OPERATIONS = {
         "override", "alpha_blend", "add", "subtract", "multiply"
     };
-    const std::array<std::string, 31> CAMERA_EASE_NAMES = {
-        "linear", "spring", "in_sine", "out_sine", "in_out_sine", "in_quad", "out_quad", "in_out_quad",
-        "in_cubic", "out_cubic", "in_out_cubic", "in_quart", "out_quart", "in_out_quart", "in_quint",
-        "out_quint", "in_out_quint", "in_expo", "out_expo", "in_out_expo", "in_circ", "out_circ",
-        "in_out_circ", "in_back", "out_back", "in_out_back", "in_elastic", "out_elastic", "in_out_elastic",
-        "in_bounce", "out_bounce"
-    };
 
     int32_t indexOf(const std::string &value, const std::string *values, size_t count) {
         for (size_t i = 0; i < count; i++) {
@@ -159,43 +152,73 @@ namespace {
 
     void writeEnvironmentAttribute(BinaryStream &stream, const EnvironmentAttributeData &attribute) {
         stream.putString(attribute.mAttributeName);
-        stream.putOptionalPresent(attribute.mHasFrom);
-        if (attribute.mHasFrom) {
-            writeAttributeValue(stream, attribute.mFrom);
+        stream.putUnsignedVarInt((uint32_t) attribute.mPayloadType);
+        switch (attribute.mPayloadType) {
+            case EnvironmentAttributePayloadType::Constant:
+                writeAttributeValue(stream, attribute.mAttribute);
+                break;
+            case EnvironmentAttributePayloadType::Transition: {
+                const AttributeTransitionSettings &settings = attribute.mTransitionSettings;
+                writeAttributeValue(stream, attribute.mFrom);
+                writeAttributeValue(stream, attribute.mTo);
+                stream.putUnsignedVarInt(settings.mTotalTransitionTicks);
+                stream.putUnsignedVarInt(settings.mCurrentTransitionTicks);
+                stream.putVarInt((int32_t) settings.mEasing);
+                stream.putString(settings.mClockName);
+                break;
+            }
+            case EnvironmentAttributePayloadType::NoiseTransition: {
+                const AttributeNoiseTransitionSettings &settings = attribute.mNoiseTransitionSettings;
+                writeAttributeValue(stream, attribute.mFrom);
+                writeAttributeValue(stream, attribute.mTo);
+                stream.putUnsignedVarInt(settings.mTotalTransitionTicks);
+                stream.putUnsignedVarInt(settings.mCurrentTransitionTicks);
+                stream.putVarInt((int32_t) settings.mEasing);
+                stream.putString(settings.mClockName);
+                stream.putUnsignedVarInt(settings.mLocalTransitionTicks);
+                stream.putString(settings.mNoiseName);
+                stream.putByte((unsigned char) settings.mNoiseAlignment.mType);
+                stream.putUnsignedVarInt((uint32_t) settings.mNoiseAlignment.mValue);
+                break;
+            }
         }
-        writeAttributeValue(stream, attribute.mAttribute);
-        stream.putOptionalPresent(attribute.mHasTo);
-        if (attribute.mHasTo) {
-            writeAttributeValue(stream, attribute.mTo);
-        }
-        stream.putLInt((uint32_t) attribute.mCurrentTransitionTicks);
-        stream.putLInt((uint32_t) attribute.mTotalTransitionTicks);
-        stream.putString(CAMERA_EASE_NAMES[(size_t) attribute.mEasing]);
-        stream.putLInt((uint32_t) attribute.mLocalTransitionTicks);
-        stream.putBool(attribute.mNoiseTransition);
-        stream.putByte((unsigned char) attribute.mNoiseAlignment.mType);
-        stream.putUnsignedVarInt((uint32_t) attribute.mNoiseAlignment.mValue);
     }
 
     EnvironmentAttributeData readEnvironmentAttribute(ReadOnlyBinaryStream &stream) {
         EnvironmentAttributeData attribute;
         attribute.mAttributeName = stream.getString();
-        attribute.mHasFrom = stream.getOptionalPresent();
-        if (attribute.mHasFrom) {
-            attribute.mFrom = readAttributeValue(stream);
+        attribute.mPayloadType = (EnvironmentAttributePayloadType) stream.getUnsignedVarInt();
+        switch (attribute.mPayloadType) {
+            case EnvironmentAttributePayloadType::Constant:
+                attribute.mAttribute = readAttributeValue(stream);
+                break;
+            case EnvironmentAttributePayloadType::Transition: {
+                AttributeTransitionSettings &settings = attribute.mTransitionSettings;
+                attribute.mFrom = readAttributeValue(stream);
+                attribute.mTo = readAttributeValue(stream);
+                settings.mTotalTransitionTicks = stream.getUnsignedVarInt();
+                settings.mCurrentTransitionTicks = stream.getUnsignedVarInt();
+                settings.mEasing = (CameraEase) stream.getVarInt();
+                settings.mClockName = stream.getString();
+                break;
+            }
+            case EnvironmentAttributePayloadType::NoiseTransition: {
+                AttributeNoiseTransitionSettings &settings = attribute.mNoiseTransitionSettings;
+                attribute.mFrom = readAttributeValue(stream);
+                attribute.mTo = readAttributeValue(stream);
+                settings.mTotalTransitionTicks = stream.getUnsignedVarInt();
+                settings.mCurrentTransitionTicks = stream.getUnsignedVarInt();
+                settings.mEasing = (CameraEase) stream.getVarInt();
+                settings.mClockName = stream.getString();
+                settings.mLocalTransitionTicks = stream.getUnsignedVarInt();
+                settings.mNoiseName = stream.getString();
+                settings.mNoiseAlignment.mType = (NoiseAlignmentType) stream.getByte();
+                settings.mNoiseAlignment.mValue = (int32_t) stream.getUnsignedVarInt();
+                break;
+            }
+            default:
+                throw BinaryDataException("Unknown environment attribute payload type");
         }
-        attribute.mAttribute = readAttributeValue(stream);
-        attribute.mHasTo = stream.getOptionalPresent();
-        if (attribute.mHasTo) {
-            attribute.mTo = readAttributeValue(stream);
-        }
-        attribute.mCurrentTransitionTicks = (int32_t) stream.getLInt();
-        attribute.mTotalTransitionTicks = (int32_t) stream.getLInt();
-        attribute.mEasing = (CameraEase) indexOf(stream.getString(), CAMERA_EASE_NAMES.data(), CAMERA_EASE_NAMES.size());
-        attribute.mLocalTransitionTicks = (int32_t) stream.getLInt();
-        attribute.mNoiseTransition = stream.getBool();
-        attribute.mNoiseAlignment.mType = (NoiseAlignmentType) stream.getByte();
-        attribute.mNoiseAlignment.mValue = (int32_t) stream.getUnsignedVarInt();
         return attribute;
     }
 

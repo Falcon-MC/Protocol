@@ -46,6 +46,7 @@ public:
     EditorWorldType mEditorWorldType;
     bool mCreatedInEditor;
     bool mExportedFromEditor;
+    EditorLevelMigrationVersion mEditorLevelMigrationVersion;
     int32_t mDayCycleStopTime;
     uint32_t mEduEditionOffers;
     bool mEduFeaturesEnabled;

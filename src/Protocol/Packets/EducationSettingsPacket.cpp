@@ -12,9 +12,12 @@ void EducationSettingsPacket::write(BinaryStream &stream, const PacketCodecConte
     stream.putString(mPostProcessFilter);
     stream.putString(mScreenshotBorderPath);
 
-    stream.putOptionalPresent(mHasActorCapabilities);
-    if (mHasActorCapabilities)
-        stream.putBool(mActorCapabilities);
+    stream.putOptionalPresent(mHasAgentCapabilities);
+    if (mHasAgentCapabilities) {
+        stream.putOptionalPresent(mHasCanModifyBlocks);
+        if (mHasCanModifyBlocks)
+            stream.putBool(mCanModifyBlocks);
+    }
 
     stream.putOptionalPresent(mHasOverrideUri);
     if (mHasOverrideUri)
@@ -35,9 +38,13 @@ void EducationSettingsPacket::read(ReadOnlyBinaryStream &stream, const PacketCod
     mPostProcessFilter = stream.getString();
     mScreenshotBorderPath = stream.getString();
 
-    mHasActorCapabilities = stream.getOptionalPresent();
-    if (mHasActorCapabilities)
-        mActorCapabilities = stream.getBool();
+    mHasAgentCapabilities = stream.getOptionalPresent();
+    mHasCanModifyBlocks = false;
+    if (mHasAgentCapabilities) {
+        mHasCanModifyBlocks = stream.getOptionalPresent();
+        if (mHasCanModifyBlocks)
+            mCanModifyBlocks = stream.getBool();
+    }
 
     mHasOverrideUri = stream.getOptionalPresent();
     if (mHasOverrideUri)

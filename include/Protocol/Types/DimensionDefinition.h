@@ -13,4 +13,7 @@ public:
     int32_t mGeneratorType = 0;
     int32_t mDimensionType = 0;
     Uuid mPackId;
+    std::string mDefaultBiome;
+    int32_t mCloudHeight = 0;
+    bool mRenderClouds = false;
 };

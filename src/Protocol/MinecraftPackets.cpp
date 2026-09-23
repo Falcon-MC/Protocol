@@ -129,6 +129,11 @@
 #include "Protocol/Packets/PartyChangedPacket.h"
 #include "Protocol/Packets/PartyDestinationCookieResponsePacket.h"
 #include "Protocol/Packets/RecordStartedPacket.h"
+#include "Protocol/Packets/ClientboundMatchmakingStatePacket.h"
+#include "Protocol/Packets/ServerboundStonecutterSetRecipePacket.h"
+#include "Protocol/Packets/ClientboundStonecutterSetRecipePacket.h"
+#include "Protocol/Packets/ServerboundMatchmakingCancelPacket.h"
+#include "Protocol/Packets/SetPassengerOfBlockPacket.h"
 #include "Protocol/Packets/PhotoInfoRequestPacket.h"
 #include "Protocol/Packets/PhotoTransferPacket.h"
 #include "Protocol/Packets/PlayStatusPacket.h"
@@ -402,6 +407,11 @@ void MinecraftPackets::_registerDefaultPackets() {
     registerPacket<PartyChangedPacket>();
     registerPacket<PartyDestinationCookieResponsePacket>();
     registerPacket<RecordStartedPacket>();
+    registerPacket<ClientboundMatchmakingStatePacket>();
+    registerPacket<ServerboundStonecutterSetRecipePacket>();
+    registerPacket<ClientboundStonecutterSetRecipePacket>();
+    registerPacket<ServerboundMatchmakingCancelPacket>();
+    registerPacket<SetPassengerOfBlockPacket>();
     registerPacket<PhotoInfoRequestPacket>();
     registerPacket<PhotoTransferPacket>();
     registerPacket<PlayStatusPacket>();

@@ -32,7 +32,6 @@ SkinAnimationData SkinCodec::readAnimation(ReadOnlyBinaryStream &stream) {
 
 void SkinCodec::writeSkin(BinaryStream &stream, const SerializedSkin &skin) {
     stream.putString(skin.mSkinId);
-    stream.putString(skin.mPlayFabId);
     stream.putString(skin.mSkinResourcePatch);
     writeImage(stream, skin.mSkinData);
 
@@ -81,7 +80,6 @@ void SkinCodec::writeSkin(BinaryStream &stream, const SerializedSkin &skin) {
 SerializedSkin SkinCodec::readSkin(ReadOnlyBinaryStream &stream) {
     SerializedSkin skin;
     skin.mSkinId = stream.getString();
-    skin.mPlayFabId = stream.getString();
     skin.mSkinResourcePatch = stream.getString();
     skin.mSkinData = readImage(stream);
 

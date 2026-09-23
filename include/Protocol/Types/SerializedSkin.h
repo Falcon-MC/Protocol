@@ -39,7 +39,6 @@ public:
 class SerializedSkin {
 public:
     std::string mSkinId;
-    std::string mPlayFabId;
     std::string mSkinResourcePatch;
     SkinImageData mSkinData;
     std::vector<SkinAnimationData> mAnimations;

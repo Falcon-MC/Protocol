@@ -1,5 +1,17 @@
 #pragma once
 
+#include <cstdint>
+
+enum class SoundDataUpdateType : uint8_t {
+    Stop = 0,
+    SetVolume = 1,
+    SetPitch = 2,
+    Fade = 3,
+    SeekTo = 4,
+    Pause = 5,
+    Resume = 6
+};
+
 class FadeSoundData {
 public:
     float mTargetVolume = 0.0f;

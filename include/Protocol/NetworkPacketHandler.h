@@ -132,6 +132,11 @@ class PartyChangedPacket;
 class PartyDestinationCookieResponsePacket;
 
 class RecordStartedPacket;
+class ClientboundMatchmakingStatePacket;
+class ServerboundStonecutterSetRecipePacket;
+class ClientboundStonecutterSetRecipePacket;
+class ServerboundMatchmakingCancelPacket;
+class SetPassengerOfBlockPacket;
 class PhotoInfoRequestPacket;
 class PhotoTransferPacket;
 class PlayStatusPacket;
@@ -506,6 +511,16 @@ public:
     virtual void handle(const NetworkIdentifier &, const PartyDestinationCookieResponsePacket &) {}
 
     virtual void handle(const NetworkIdentifier &, const RecordStartedPacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const ClientboundMatchmakingStatePacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const ServerboundStonecutterSetRecipePacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const ClientboundStonecutterSetRecipePacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const ServerboundMatchmakingCancelPacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const SetPassengerOfBlockPacket &) {}
 
     virtual void handle(const NetworkIdentifier &, const PhotoInfoRequestPacket &) {}
 

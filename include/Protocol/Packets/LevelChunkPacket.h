@@ -30,4 +30,5 @@ public:
     int32_t mSubChunkLimit;
     std::vector<uint64_t> mBlobIds;
     std::string mData;
+    bool mClientBiomeUpdate;
 };

@@ -48,6 +48,10 @@ void AnimatePacket::write(BinaryStream &stream, const PacketCodecContext &contex
     stream.putOptionalPresent(!mSwingSource.empty());
     if (!mSwingSource.empty())
         stream.putString(mSwingSource);
+
+    stream.putOptionalPresent(mHand.has_value());
+    if (mHand.has_value())
+        stream.putByte(*mHand);
 }
 
 void AnimatePacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
@@ -58,6 +62,10 @@ void AnimatePacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext 
     mSwingSource.clear();
     if (stream.getOptionalPresent())
         mSwingSource = stream.getString();
+
+    mHand.reset();
+    if (stream.getOptionalPresent())
+        mHand = stream.getByte();
 }
 
 void AnimatePacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {

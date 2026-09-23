@@ -8,7 +8,8 @@ StartGamePacket::StartGamePacket()
           mSeed(0), mSpawnBiomeType(SpawnBiomeType::Default), mDimensionId(0), mGeneratorId(1),
           mLevelGameType(GameType::Survival), mHardcore(false), mDifficulty(1), mDefaultSpawn(0, 64, 0),
           mAchievementsDisabled(true), mEditorWorldType(EditorWorldType::NonEditor), mCreatedInEditor(false),
-          mExportedFromEditor(false), mDayCycleStopTime(0), mEduEditionOffers(0), mEduFeaturesEnabled(false),
+          mExportedFromEditor(false), mEditorLevelMigrationVersion(EditorLevelMigrationVersion::Legacy),
+          mDayCycleStopTime(0), mEduEditionOffers(0), mEduFeaturesEnabled(false),
           mRainLevel(0.0f), mLightningLevel(0.0f), mPlatformLockedContentConfirmed(false), mMultiplayerGame(true),
           mBroadcastingToLan(true), mXblBroadcastMode(GamePublishSetting::Public),
           mPlatformBroadcastMode(GamePublishSetting::Public), mCommandsEnabled(true), mTexturePacksRequired(false),
@@ -47,6 +48,7 @@ void StartGamePacket::write(BinaryStream &stream, const PacketCodecContext &cont
     stream.putVarInt((int32_t) mEditorWorldType);
     stream.putBool(mCreatedInEditor);
     stream.putBool(mExportedFromEditor);
+    stream.putByte((unsigned char) mEditorLevelMigrationVersion);
     stream.putVarInt(mDayCycleStopTime);
     stream.putUnsignedVarInt(mEduEditionOffers);
     stream.putBool(mEduFeaturesEnabled);
@@ -157,6 +159,7 @@ void StartGamePacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContex
     mEditorWorldType = (EditorWorldType) stream.getVarInt();
     mCreatedInEditor = stream.getBool();
     mExportedFromEditor = stream.getBool();
+    mEditorLevelMigrationVersion = (EditorLevelMigrationVersion) (int8_t) stream.getByte();
     mDayCycleStopTime = stream.getVarInt();
     mEduEditionOffers = stream.getUnsignedVarInt();
     mEduFeaturesEnabled = stream.getBool();

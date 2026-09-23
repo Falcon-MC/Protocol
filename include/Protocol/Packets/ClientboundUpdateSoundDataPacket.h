@@ -23,6 +23,8 @@ public:
 
     int64_t mServerSoundHandle = 0;
 
+    SoundDataUpdateType mType = SoundDataUpdateType::Stop;
+
     SetVolumeSoundData mVolume;
     SetPitchSoundData mPitch;
     FadeSoundData mFade;

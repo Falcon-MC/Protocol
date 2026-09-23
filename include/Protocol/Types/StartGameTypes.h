@@ -28,6 +28,11 @@ enum class EditorWorldType : int {
     EditorRealmsUpload = 3
 };
 
+enum class EditorLevelMigrationVersion : int8_t {
+    Legacy = 0,
+    EditorAchievements = 1
+};
+
 enum class GamePublishSetting : int {
     NoMultiPlay = 0,
     InviteOnly = 1,
