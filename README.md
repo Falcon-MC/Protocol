@@ -27,7 +27,7 @@ The binary format of the Bedrock protocol, with no game logic attached. It is th
   more in `Protocol/Types`
 - **Codecs** - items (inventory and entity formats), entity metadata, skins, inventory transactions,
   camera and data store
-- **Utilities** - a JSON parser, math types and logging
+- **Utilities** - math types and logging
 
 NBT tags and binary streams come from [NBT](https://github.com/Falcon-MC/NBT), fetched automatically.
 
