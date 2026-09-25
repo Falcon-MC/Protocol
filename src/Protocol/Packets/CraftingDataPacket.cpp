@@ -179,7 +179,7 @@ namespace {
             stream.putBool(recipe.mSymmetric);
 
         writeUnlockingRequirement(stream, recipe);
-        stream.putVarInt(recipe.mRecipeNetId);
+        stream.putUnsignedVarInt((uint32_t) recipe.mRecipeNetId);
     }
 
     CraftingRecipeEntry readRecipe(ReadOnlyBinaryStream &stream, bool shaped) {
@@ -207,7 +207,7 @@ namespace {
             recipe.mSymmetric = stream.getBool();
 
         readUnlockingRequirement(stream, recipe);
-        recipe.mRecipeNetId = stream.getVarInt();
+        recipe.mRecipeNetId = (int32_t) stream.getUnsignedVarInt();
         return recipe;
     }
 
@@ -236,7 +236,7 @@ namespace {
             if (transform)
                 writeOutput(stream, recipe.mOutput);
             stream.putString(recipe.mBlockName);
-            stream.putVarInt(recipe.mRecipeNetId);
+            stream.putUnsignedVarInt((uint32_t) recipe.mRecipeNetId);
         }
     }
 
@@ -253,7 +253,7 @@ namespace {
             if (transform)
                 recipe.mOutput = readOutput(stream);
             recipe.mBlockName = stream.getString();
-            recipe.mRecipeNetId = stream.getVarInt();
+            recipe.mRecipeNetId = (int32_t) stream.getUnsignedVarInt();
             recipes.push_back(std::move(recipe));
         }
         return recipes;
@@ -267,7 +267,7 @@ void CraftingDataPacket::write(BinaryStream &stream, const PacketCodecContext &c
     stream.putUnsignedVarInt((uint32_t) mMultiRecipes.size());
     for (const MultiRecipeEntry &recipe: mMultiRecipes) {
         stream.putUuid(recipe.mUuid);
-        stream.putVarInt(recipe.mRecipeNetId);
+        stream.putUnsignedVarInt((uint32_t) recipe.mRecipeNetId);
     }
 
     writeRecipes(stream, mUserDataShapelessRecipes, false);
@@ -315,7 +315,7 @@ void CraftingDataPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecCon
     for (uint32_t i = 0; i < multiCount; i++) {
         MultiRecipeEntry recipe;
         recipe.mUuid = stream.getUuid();
-        recipe.mRecipeNetId = stream.getVarInt();
+        recipe.mRecipeNetId = (int32_t) stream.getUnsignedVarInt();
         mMultiRecipes.push_back(recipe);
     }
 

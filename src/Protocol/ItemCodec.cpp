@@ -35,7 +35,7 @@ void ItemCodec::writeItemInstance(BinaryStream &stream, const PacketCodecContext
         stream.putLShort(0);
         stream.putUnsignedVarInt((uint32_t) item.mDamage);
         stream.putVarInt(0);
-        stream.putUnsignedVarInt((uint32_t) item.mDamage);
+        stream.putString("");
         return;
     }
 
@@ -137,8 +137,8 @@ void ItemCodec::writeNetworkItemStackDescriptor(BinaryStream &stream, const Pack
         stream.putLShort(0);
         stream.putUnsignedVarInt((uint32_t) item.mDamage);
         stream.putBool(false);
-        stream.putUnsignedVarInt((uint32_t) item.mDamage);
-        stream.putUnsignedVarInt((uint32_t) item.mDamage);
+        stream.putUnsignedVarInt(0);
+        stream.putString("");
         return;
     }
 

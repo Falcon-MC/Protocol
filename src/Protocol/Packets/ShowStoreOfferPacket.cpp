@@ -1,16 +1,17 @@
 #include "Protocol/Packets/ShowStoreOfferPacket.h"
 
+#include "Core/Utility/UUID.h"
 #include "Protocol/NetworkPacketHandler.h"
 
 ShowStoreOfferPacket::ShowStoreOfferPacket() = default;
 
 void ShowStoreOfferPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
-    stream.putString(mOfferId);
+    stream.putUuid(Uuid::fromString(mOfferId));
     stream.putByte((unsigned char) mRedirectType);
 }
 
 void ShowStoreOfferPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
-    mOfferId = stream.getString();
+    mOfferId = stream.getUuid().toString();
     mRedirectType = (StoreOfferRedirectType) stream.getByte();
 }
 

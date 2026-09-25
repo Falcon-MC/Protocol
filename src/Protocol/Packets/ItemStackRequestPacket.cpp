@@ -79,7 +79,7 @@ namespace {
         stream.putUnsignedVarInt(air || item.mBlockDefinition == nullptr ? 0 : (uint32_t) item.mBlockDefinition->getRuntimeId());
 
         if (air) {
-            stream.putUnsignedVarInt(0);
+            stream.putString("");
             return;
         }
 
@@ -207,11 +207,11 @@ namespace {
                 stream.putLInt((uint32_t) action.mStackNetworkId);
                 break;
             case ItemStackRequestActionType::CraftRecipe:
-                stream.putVarInt(action.mRecipeNetworkId);
+                stream.putUnsignedVarInt((uint32_t) action.mRecipeNetworkId);
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
                 break;
             case ItemStackRequestActionType::CraftRecipeAuto:
-                stream.putVarInt(action.mRecipeNetworkId);
+                stream.putUnsignedVarInt((uint32_t) action.mRecipeNetworkId);
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
                 stream.putArrayLength(0);
                 break;
@@ -220,13 +220,13 @@ namespace {
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
                 break;
             case ItemStackRequestActionType::CraftRecipeOptional:
-                stream.putVarInt(action.mRecipeNetworkId);
+                stream.putUnsignedVarInt((uint32_t) action.mRecipeNetworkId);
                 stream.putLInt((uint32_t) action.mFilteredStringIndex);
                 break;
             case ItemStackRequestActionType::CraftRepairAndDisenchant:
-                stream.putVarInt(action.mRecipeNetworkId);
-                stream.putVarInt(action.mRepairCost);
+                stream.putLInt((uint32_t) action.mRecipeNetworkId);
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
+                stream.putVarInt(action.mRepairCost);
                 break;
             case ItemStackRequestActionType::CraftLoom:
                 stream.putString(action.mPatternId);
@@ -284,11 +284,11 @@ namespace {
                 action.mStackNetworkId = (int32_t) stream.getLInt();
                 break;
             case ItemStackRequestActionType::CraftRecipe:
-                action.mRecipeNetworkId = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getUnsignedVarInt();
                 action.mNumberOfRequestedCrafts = stream.getByte();
                 break;
             case ItemStackRequestActionType::CraftRecipeAuto: {
-                action.mRecipeNetworkId = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getUnsignedVarInt();
                 action.mNumberOfRequestedCrafts = stream.getByte();
                 uint32_t arrayLength = stream.getArrayLength();
                 for (uint32_t i = 0; i < arrayLength; i++) {
@@ -301,13 +301,13 @@ namespace {
                 action.mNumberOfRequestedCrafts = stream.getByte();
                 break;
             case ItemStackRequestActionType::CraftRecipeOptional:
-                action.mRecipeNetworkId = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getUnsignedVarInt();
                 action.mFilteredStringIndex = (int32_t) stream.getLInt();
                 break;
             case ItemStackRequestActionType::CraftRepairAndDisenchant:
-                action.mRecipeNetworkId = stream.getVarInt();
-                action.mRepairCost = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getLInt();
                 action.mNumberOfRequestedCrafts = stream.getByte();
+                action.mRepairCost = stream.getVarInt();
                 break;
             case ItemStackRequestActionType::CraftLoom:
                 action.mPatternId = stream.getString();
