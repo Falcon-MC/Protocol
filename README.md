@@ -64,8 +64,9 @@ cmake --build build
 `tools/check_protocol.py` compares every packet's `write` with the official
 [protocol documentation](https://github.com/Mojang/bedrock-protocol-docs). It expands both into the encodings that
 reach the wire, field by field, and reports packet id differences, missing packets and the first field that differs
-in each packet. The Protocol check workflow runs it against the documentation of `CURRENT_PROTOCOL` and publishes
-the report in the run summary.
+in each packet. Every branch a writer can take (`if`/`else`, `switch`, early `return`) must match one of the
+documented variants, and helpers called on members or through function arguments are followed. The Protocol check
+workflow runs it against the documentation of `CURRENT_PROTOCOL` and publishes the report in the run summary.
 
 ```
 python tools/check_protocol.py --docs /path/to/bedrock-protocol-docs/json

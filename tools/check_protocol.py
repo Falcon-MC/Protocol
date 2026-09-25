@@ -34,10 +34,18 @@ PUT_TOKENS = {
 }
 
 COMPATIBLE = {("bool", "u8"), ("u8", "bool")}
+INTEGERS = {"u8", "cbyte", "i16le", "i16be", "i32le", "i32be", "i64le", "i64be", "var32", "uvar32", "var64", "uvar64"}
 OPEN = "["
 CLOSE = "]"
 OPAQUE = "opaque"
 STOP = "stop"
+CHOICE = "choice"
+CONTROL = "ctl"
+NBT = "nbt"
+BYTE_ARRAYS = [[[], [OPEN, "u8", CLOSE]], [[], [OPEN, "cbyte", CLOSE]]]
+ACCEPT = -1
+VERIFIED, OPTIONAL, BYTES, HELPERS = range(4)
+EMPTY_INFO = (frozenset(), frozenset(), frozenset(), frozenset())
 
 STATEMENT = re.compile(
     r"\b(for|while|if|switch|else)\b"
@@ -47,22 +55,54 @@ STATEMENT = re.compile(
 )
 DEFINITION = re.compile(r"^[\w:<>,\s&*]*?\b([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s*\(([^;{]*)\)\s*(?:const\s*)?\{",
                         re.MULTILINE)
+CASE_LABEL = re.compile(r"\b(?:case\b[^;{}]*?(?<!:):(?!:)|default\s*:)")
+RETURN = re.compile(r"\breturn\b")
+THROW = re.compile(r"\bthrow\b")
+KEYWORDS = {"if", "for", "while", "switch", "return", "const", "case", "else", "new", "delete", "throw", "sizeof",
+            "typename", "struct", "class", "using", "static_cast", "reinterpret_cast"}
+WRAPPERS = re.compile(r"(?:std::)?(?:optional|vector|unique_ptr|shared_ptr|list|deque|array|set)\s*<\s*(.+?)\s*"
+                      r"(?:,[^<>]*)?>")
 
 
 class Token:
-    def __init__(self, kind, field="", depth=0, detail=""):
+    def __init__(self, kind, field="", depth=0, detail="", alternatives=None):
         self.kind = kind
         self.field = field
         self.depth = depth
         self.detail = detail
-        self.starts_field = False
+        self.alternatives = alternatives or []
+        self.starts = []
 
     def label(self):
         if self.kind == OPAQUE:
             return f"call {self.detail}"
         if self.kind == STOP:
             return f"unchecked ({self.detail})"
+        if self.kind == CHOICE:
+            return f"one of {len(self.alternatives)} variants"
+        if self.kind == CONTROL:
+            return "variant index"
         return self.kind
+
+
+def signature(tokens):
+    return tuple((token.kind, token.detail, tuple(signature(alternative) for alternative in token.alternatives))
+                 for token in tokens)
+
+
+def choice(alternatives, field="", depth=0):
+    unique = []
+    seen = set()
+    for alternative in alternatives:
+        key = signature(alternative)
+        if key not in seen:
+            seen.add(key)
+            unique.append(alternative)
+    if not unique:
+        return []
+    if len(unique) == 1:
+        return unique[0]
+    return [Token(CHOICE, field, depth, alternatives=unique)]
 
 
 def strip_comments(text):
@@ -120,33 +160,156 @@ def body_after(text, start):
     return text[index:end + 1], end + 1
 
 
+def split_arguments(text):
+    text = text.replace("->", ".")
+    parts = []
+    depth = 0
+    start = 0
+    for position, character in enumerate(text):
+        if character in "(<[{":
+            depth += 1
+        elif character in ")>]}":
+            depth -= 1
+        elif character == "," and depth == 0:
+            parts.append(text[start:position])
+            start = position + 1
+    parts.append(text[start:])
+    return [part.strip() for part in parts if part.strip()]
+
+
+def switch_cases(body):
+    labels = []
+    for match in CASE_LABEL.finditer(body):
+        prefix = body[:match.start()]
+        if prefix.count("{") == prefix.count("}"):
+            labels.append(match)
+    cases = []
+    for number, label in enumerate(labels):
+        end = labels[number + 1].start() if number + 1 < len(labels) else len(body)
+        text = body[label.end():end]
+        if text.strip():
+            cases.append(text)
+    return cases
+
+
+def unwrap(kind):
+    kind = re.sub(r"\bconst\b", "", kind).strip()
+    while True:
+        match = WRAPPERS.fullmatch(kind)
+        if not match:
+            return kind
+        kind = match.group(1).strip()
+
+
+class Scope:
+    def __init__(self, path, text, bindings=None, calls=0):
+        self.path = path
+        self.text = text
+        self.bindings = bindings or {}
+        self.calls = calls
+
+
 class FalconIndex:
     def __init__(self, root):
+        self.root = root
         self.functions = {}
         self.local = {}
-        for path in sorted(root.rglob("*.cpp")):
+        self.free = {}
+        self.headers = {}
+        for path in sorted((root / "include").rglob("*.h")):
+            self.headers[path] = strip_comments(path.read_text(encoding="utf-8", errors="replace"))
+        for path in sorted((root / "src").rglob("*.cpp")):
             text = strip_comments(path.read_text(encoding="utf-8", errors="replace"))
             self.local[path] = {}
             for match in DEFINITION.finditer(text):
                 name = match.group(1)
-                if "stream" not in match.group(2):
+                if "stream" not in match.group(2) or name.split("::")[-1] in KEYWORDS:
                     continue
                 open_brace = text.index("{", match.end() - 1)
                 body = text[open_brace + 1:matching(text, open_brace, "{", "}")]
-                self.local[path][name.split("::")[-1]] = body
+                entry = (path, match.group(2), body)
+                self.local[path][name.split("::")[-1]] = entry
                 if "::" in name:
-                    self.functions[name] = (path, body)
+                    self.functions[name] = entry
+                else:
+                    self.free.setdefault(name, []).append(entry)
 
     def resolve(self, path, name):
         if name in self.functions:
             return self.functions[name]
         short = name.split("::")[-1]
         if "::" not in name and short in self.local.get(path, {}):
-            return path, self.local[path][short]
+            return self.local[path][short]
+        if "::" not in name and len(self.free.get(name, [])) == 1:
+            return self.free[name][0]
+        return None
+
+    def method(self, kind, name):
+        short = kind.split("::")[-1]
+        for qualified, entry in self.functions.items():
+            parts = qualified.split("::")
+            if len(parts) >= 2 and parts[-2] == short and parts[-1] == name:
+                return entry
+        return None
+
+    def own_header(self, path):
+        try:
+            relative = path.relative_to(self.root / "src")
+        except ValueError:
+            return None
+        return self.headers.get(self.root / "include" / relative.with_suffix(".h"))
+
+    def declared_types(self, name, scope, depth=0):
+        pattern = re.compile(r"([A-Za-z_][\w:]*(?:\s*<[^;(){}]*>)?)\s*[&*]*\s*\b" + re.escape(name)
+                             + r"\b\s*(?=[;=,){}:\[]|$)", re.MULTILINE)
+        texts = [scope.text]
+        header = self.own_header(scope.path)
+        if header:
+            texts.append(header)
+        texts.extend(self.headers.values())
+        found = []
+        for text in texts:
+            for match in pattern.finditer(text):
+                kind = unwrap(match.group(1))
+                if kind in KEYWORDS or kind in found:
+                    continue
+                if kind == "auto":
+                    if depth < 3:
+                        container = re.search(r"\b" + re.escape(name) + r"\s*:\s*([^)]+)\)", scope.text)
+                        if container:
+                            identifiers = re.findall(r"[A-Za-z_]\w*", container.group(1))
+                            if identifiers:
+                                found.extend(self.declared_types(identifiers[-1], scope, depth + 1))
+                    continue
+                found.append(kind)
+        return found
+
+    def member(self, expression, method, scope):
+        identifiers = re.findall(r"[A-Za-z_]\w*", re.sub(r"\[[^\]]*\]", "", expression))
+        if not identifiers:
+            return None
+        for kind in self.declared_types(identifiers[-1], scope):
+            entry = self.method(kind, method)
+            if entry:
+                return entry
         return None
 
 
-def falcon_tokens(index, path, code, depth=0, call_depth=0):
+def enter(entry, arguments, scope):
+    path, parameters, body = entry
+    bindings = {}
+    names = []
+    for parameter in split_arguments(parameters):
+        identifiers = re.findall(r"[A-Za-z_]\w*", parameter.split("=")[0])
+        names.append(identifiers[-1] if identifiers else "")
+    for name, argument in zip(names, split_arguments(arguments)):
+        argument = argument.lstrip("&*").strip()
+        if re.fullmatch(r"[A-Za-z_][\w:]*", argument):
+            bindings[name] = scope.bindings.get(argument, argument)
+    return Scope(path, parameters + "\n" + body, bindings, scope.calls + 1)
+
+
+def falcon_tokens(index, scope, code, depth=0):
     tokens = []
     position = 0
     while True:
@@ -159,7 +322,7 @@ def falcon_tokens(index, path, code, depth=0, call_depth=0):
             header_start = code.index("(", match.end())
             header_end = matching(code, header_start, "(", ")")
             body, position = body_after(code, header_end + 1)
-            inner = falcon_tokens(index, path, body, depth + 1, call_depth)
+            inner = falcon_tokens(index, scope, body, depth + 1)
             if inner:
                 tokens.append(Token(OPEN, depth=depth))
                 tokens.extend(inner)
@@ -168,8 +331,8 @@ def falcon_tokens(index, path, code, depth=0, call_depth=0):
             header_start = code.index("(", match.end())
             header_end = matching(code, header_start, "(", ")")
             body, position = body_after(code, header_end + 1)
-            if not re.search(r"\breturn\b", body):
-                tokens.extend(falcon_tokens(index, path, body, depth, call_depth))
+            branches = [body]
+            complete = False
             while True:
                 rest = re.match(r"\s*else\b", code[position:])
                 if not rest:
@@ -179,14 +342,30 @@ def falcon_tokens(index, path, code, depth=0, call_depth=0):
                 if chained:
                     header_start = position + chained.end() - 1
                     header_end = matching(code, header_start, "(", ")")
-                    _, position = body_after(code, header_end + 1)
+                    body, position = body_after(code, header_end + 1)
                 else:
-                    _, position = body_after(code, position)
+                    body, position = body_after(code, position)
+                    complete = True
+                branches.append(body)
+            live = [body for body in branches if not THROW.search(body)]
+            if any(RETURN.search(body) for body in live):
+                rest = falcon_tokens(index, scope, code[position:], depth)
+                alternatives = []
+                for body in live:
+                    inner = falcon_tokens(index, scope, body, depth)
+                    alternatives.append(inner if RETURN.search(body) else inner + rest)
+                if not complete:
+                    alternatives.append(rest)
+                tokens.extend(choice(alternatives, depth=depth))
+                return tokens
+            alternatives = [falcon_tokens(index, scope, body, depth) for body in live]
+            tokens.extend(choice(alternatives, depth=depth))
         elif keyword == "switch":
             header_start = code.index("(", match.end())
             header_end = matching(code, header_start, "(", ")")
-            _, position = body_after(code, header_end + 1)
-            tokens.append(Token(STOP, depth=depth, detail="switch"))
+            body, position = body_after(code, header_end + 1)
+            cases = [text for text in switch_cases(body) if not THROW.search(text)]
+            tokens.extend(choice([falcon_tokens(index, scope, text, depth) for text in cases], depth=depth))
         elif keyword == "else":
             _, position = body_after(code, match.end())
         elif put:
@@ -198,16 +377,28 @@ def falcon_tokens(index, path, code, depth=0, call_depth=0):
                 tokens.append(Token(OPAQUE, depth=depth, detail=f"stream.{put}"))
         elif call:
             open_paren = code.index("(", match.start())
-            position = matching(code, open_paren, "(", ")") + 1
-            resolved = index.resolve(path, call) if call_depth < 8 else None
+            close_paren = matching(code, open_paren, "(", ")")
+            position = close_paren + 1
+            name = scope.bindings.get(call, call)
+            if name.startswith("NbtIo::write"):
+                tokens.append(Token(NBT, depth=depth))
+                continue
+            resolved = index.resolve(scope.path, name) if scope.calls < 12 else None
             if resolved:
-                tokens.extend(falcon_tokens(index, resolved[0], resolved[1], depth, call_depth + 1))
+                inner = enter(resolved, code[open_paren + 1:close_paren], scope)
+                tokens.extend(falcon_tokens(index, inner, resolved[2], depth))
             else:
-                tokens.append(Token(OPAQUE, depth=depth, detail=call))
+                tokens.append(Token(OPAQUE, depth=depth, detail=name))
         else:
             open_paren = code.index("(", match.start() + len(member))
-            position = matching(code, open_paren, "(", ")") + 1
-            tokens.append(Token(OPAQUE, depth=depth, detail=f"{member}.{member_call}"))
+            close_paren = matching(code, open_paren, "(", ")")
+            position = close_paren + 1
+            resolved = index.member(member, member_call, scope) if scope.calls < 12 else None
+            if resolved:
+                inner = enter(resolved, code[open_paren + 1:close_paren], scope)
+                tokens.extend(falcon_tokens(index, inner, resolved[2], depth))
+            else:
+                tokens.append(Token(OPAQUE, depth=depth, detail=f"{member}.{member_call}"))
 
 
 class MojangDocs:
@@ -262,11 +453,23 @@ def primitive_token(schema):
         return f"f{32 if underlying == 'float' else 64}{'be' if 'Big Endian' in options else 'le'}"
     if underlying:
         return integer_token(underlying, options)
-    if schema.get("type") == "integer" and "Compression" in options:
-        return "var32"
+    if schema.get("type") == "integer":
+        return "var32" if "Compression" in options else "i32le"
     if schema.get("type") == "string" and "enum" not in schema:
         return "string"
     return None
+
+
+def map_tokens(docs, schema, field, depth, seen):
+    value = schema["additionalProperties"]
+    pair = isinstance(value, dict) and value.get("type") == "object"
+    if pair and set(value.get("properties", {})) == {"key", "value"}:
+        key = mojang_tokens(docs, value["properties"]["key"], f"{field}.key", depth + 1, seen)
+        entry = mojang_tokens(docs, value["properties"]["value"], f"{field}.value", depth + 1, seen)
+    else:
+        key = mojang_tokens(docs, schema.get("propertyNames", {"type": "string"}), f"{field}.key", depth + 1, seen)
+        entry = mojang_tokens(docs, value if isinstance(value, dict) else {}, f"{field}.value", depth + 1, seen)
+    return [Token("uvar32", field, depth), Token(OPEN, field, depth)] + key + entry + [Token(CLOSE, field, depth)]
 
 
 def mojang_tokens(docs, schema, field, depth, seen):
@@ -274,8 +477,10 @@ def mojang_tokens(docs, schema, field, depth, seen):
         return [Token(STOP, field, depth, "missing schema")]
 
     if "oneOf" in schema or "anyOf" in schema:
-        control = schema.get("x-control-value-type", "?")
-        return [Token(STOP, field, depth, f"variant switched on {control}")]
+        options = schema.get("oneOf", schema.get("anyOf"))
+        alternatives = [mojang_tokens(docs, option, field, depth, seen) for option in options]
+        tokens = [Token(CONTROL, field, depth)] if "x-control-value-type" in schema else []
+        return tokens + choice(alternatives, field, depth)
 
     if "$ref" not in schema:
         token = primitive_token(schema)
@@ -284,9 +489,11 @@ def mojang_tokens(docs, schema, field, depth, seen):
 
     if "$ref" in schema:
         name = schema["$ref"].split("/")[-1]
+        target = docs.load(name)
+        if target is not None and target.get("$ref", "").split("/")[-1] == name:
+            return [Token("string", field, depth)]
         if name in seen:
             return [Token(STOP, field, depth, f"recursive {name}")]
-        target = docs.load(name)
         if target is not None:
             target = dict(target)
             for key in ("x-underlying-type", "x-serialization-options"):
@@ -306,11 +513,15 @@ def mojang_tokens(docs, schema, field, depth, seen):
         if inherited and "x-serialization-options" not in item_schema:
             item_schema["x-serialization-options"] = inherited
         items = mojang_tokens(docs, item_schema, field, depth + 1, seen)
-        return [Token(length, field, depth), Token(OPEN, field, depth)] + items + [Token(CLOSE, field, depth)]
+        body = [Token(OPEN, field, depth)] + items + [Token(CLOSE, field, depth)]
+        if "minItems" in schema and schema.get("minItems") == schema.get("maxItems"):
+            count = int(schema["minItems"])
+            return choice([body, items * count], field, depth) if count <= 8 else body
+        return [Token(length, field, depth)] + choice([body, []], field, depth)
 
     if kind == "object":
         if "additionalProperties" in schema and not schema.get("properties"):
-            return [Token(STOP, field, depth, "map")]
+            return map_tokens(docs, schema, field, depth, seen)
         properties = schema.get("properties", {})
         required = set(schema.get("required", properties.keys()))
         ordered = sorted(properties.items(), key=lambda item: item[1].get("x-ordinal-index", 0))
@@ -318,18 +529,21 @@ def mojang_tokens(docs, schema, field, depth, seen):
         for name, child in ordered:
             path = f"{field}.{name}" if field else name
             start = len(tokens)
-            if name not in required:
+            child_tokens = mojang_tokens(docs, child, path, depth, seen)
+            if name not in required and "default" not in child:
                 tokens.append(Token("bool", path, depth, "optional presence"))
-            tokens.extend(mojang_tokens(docs, child, path, depth, seen))
+                tokens.extend(choice([child_tokens, []], path, depth))
+            else:
+                tokens.extend(child_tokens)
             if start < len(tokens):
-                tokens[start].starts_field = True
+                tokens[start].starts.append(path)
         return tokens
 
     if kind == "null":
         return []
 
     if kind is None:
-        return [Token(STOP, field, depth, "untyped data such as NBT")]
+        return [Token(NBT, field, depth)]
 
     return [Token(STOP, field, depth, f"unsupported {kind}")]
 
@@ -339,68 +553,197 @@ def top_field(token):
 
 
 def same(want, have):
+    if have.kind == CHOICE:
+        return True
     if want.kind == "cbyte":
         return have.kind in ("u8", "uvar32", "bool")
+    if want.kind == CONTROL:
+        return have.kind in INTEGERS or have.kind == "bool"
+    if want.kind == NBT:
+        return have.kind in (NBT, "raw")
     return want.kind == have.kind or (want.kind, have.kind) in COMPATIBLE
 
 
-def compare(expected, actual, notes):
-    left = 0
-    right = 0
-    verified = set()
-    helpers = set()
-    while left < len(expected) and right < len(actual):
-        want = expected[left]
-        have = actual[right]
+class Node:
+    def __init__(self, token):
+        self.token = token
+        self.following = frozenset()
 
+
+class Pattern:
+    def __init__(self, tokens):
+        self.nodes = []
+        self.start = self.build(tokens, frozenset([ACCEPT]))
+
+    def build(self, tokens, following):
+        entry = following
+        for token in reversed(tokens):
+            if token.kind == CHOICE:
+                merged = set()
+                for alternative in token.alternatives:
+                    if alternative:
+                        alternative[0].starts += [path for path in token.starts if path not in alternative[0].starts]
+                    merged |= self.build(alternative, entry)
+                entry = frozenset(merged)
+                continue
+            node = Node(token)
+            self.nodes.append(node)
+            number = len(self.nodes) - 1
+            node.following = frozenset([number]) if token.kind == STOP else entry
+            entry = frozenset([number])
+        return entry
+
+    def skip_field(self, number, depth):
+        field = top_field(self.nodes[number].token)
+        stops = set()
+        pending = list(self.nodes[number].following)
+        visited = set()
+        while pending:
+            current = pending.pop()
+            if current in visited:
+                continue
+            visited.add(current)
+            if current == ACCEPT:
+                stops.add(current)
+                continue
+            token = self.nodes[current].token
+            ends = token.kind == CLOSE and token.depth < depth
+            leaves = token.depth <= depth and token.kind != CLOSE and top_field(token) != field
+            if ends or leaves or token.kind == STOP:
+                stops.add(current)
+                continue
+            pending.extend(self.nodes[current].following)
+        return stops
+
+    def skip_exact(self, number, field):
+        stops = set()
+        pending = [number]
+        visited = set()
+        while pending:
+            current = pending.pop()
+            if current in visited:
+                continue
+            visited.add(current)
+            if current == ACCEPT:
+                stops.add(current)
+                continue
+            token = self.nodes[current].token
+            if token.field != field and not token.field.startswith(field + "."):
+                stops.add(current)
+                continue
+            pending.extend(self.nodes[current].following)
+        return stops
+
+
+def noted(info, slot, value):
+    parts = list(info)
+    parts[slot] = parts[slot] | {value}
+    return tuple(parts)
+
+
+def add_state(states, number, info):
+    if number in states:
+        current = states[number]
+        merged = [first | second for first, second in zip(current, info)]
+        merged[OPTIONAL] = min(current[OPTIONAL], info[OPTIONAL], key=len)
+        info = tuple(merged)
+    states[number] = info
+
+
+def advance(pattern, states, have, lookahead):
+    result = {}
+    for number, info in states.items():
+        if number == ACCEPT:
+            continue
+        want = pattern.nodes[number].token
         if want.kind == STOP:
-            return "partial", f"stopped at `{want.field}`: {want.detail}", verified, helpers
-        if have.kind == STOP:
-            return "partial", f"stopped at `{want.field}`: Falcon uses a {have.detail}", verified, helpers
-
+            add_state(result, number, info)
+            continue
         if have.kind == OPAQUE:
-            helpers.add(have.detail)
-            depth = have.depth
-            field = top_field(want)
-            left += 1
-            while left < len(expected):
-                following = expected[left]
-                if following.kind == CLOSE and following.depth < depth:
-                    break
-                if following.depth <= depth and following.kind != CLOSE and top_field(following) != field:
-                    break
-                left += 1
-            right += 1
+            for target in pattern.skip_field(number, have.depth):
+                add_state(result, target, noted(info, HELPERS, have.detail))
             continue
-
-        following = actual[right + 1] if right + 1 < len(actual) else None
-        presence = have.kind == "bool" and want.starts_field and want.kind != "bool" and following is not None \
-            and following.kind != "bool" and (following.kind == OPAQUE or same(want, following))
-        if presence:
-            notes["optional"].add(f"`{want.field}`")
-            right += 1
-            continue
-
+        if have.kind == "bool" and want.starts and want.kind not in (OPEN, CLOSE) \
+                and want.detail != "optional presence":
+            add_state(result, number, noted(info, OPTIONAL, f"`{want.field}`"))
+            for path in want.starts:
+                for target in pattern.skip_exact(number, path):
+                    add_state(result, target, noted(info, OPTIONAL, f"`{path}`"))
         if same(want, have):
             if want.kind not in (OPEN, CLOSE):
-                verified.add(top_field(want))
+                info = noted(info, VERIFIED, top_field(want))
             if want.kind == "cbyte":
-                notes["cbyte"].add(f"`{want.field}` as {have.kind}")
-            left += 1
-            right += 1
+                info = noted(info, BYTES, f"`{want.field}` as {have.kind}")
+            for target in pattern.nodes[number].following:
+                add_state(result, target, info)
+    return result
+
+
+def expectations(pattern, states):
+    labels = []
+    for number in sorted(states, reverse=True):
+        if number == ACCEPT:
             continue
+        token = pattern.nodes[number].token
+        entry = (token.field, token.label())
+        if entry not in labels:
+            labels.append(entry)
+    return labels
 
-        return "mismatch", f"`{want.field or '?'}`: expected {want.label()}, Falcon writes {have.label()}", \
-            verified, helpers
 
-    if left < len(expected):
-        remaining = expected[left]
-        if remaining.kind == STOP:
-            return "partial", f"stopped at `{remaining.field}`: {remaining.detail}", verified, helpers
-        return "mismatch", f"`{remaining.field}` ({remaining.label()}) is never written", verified, helpers
-    if right < len(actual):
-        return "mismatch", f"Falcon writes an extra {actual[right].label()} after the last field", verified, helpers
-    return "match", "", verified, helpers
+def describe(pattern, states, have):
+    labels = expectations(pattern, states)
+    if not labels:
+        return f"Falcon writes an extra {have.label()} after the last field"
+    wanted = " or ".join(dict.fromkeys(label for _, label in labels[:4]))
+    return f"`{labels[0][0] or '?'}`: expected {wanted}, Falcon writes {have.label()}"
+
+
+def run(pattern, tokens, states, lookahead, trace, indent=0):
+    for position, have in enumerate(tokens):
+        following = tokens[position + 1] if position + 1 < len(tokens) else lookahead
+        if have.kind == CHOICE:
+            outcomes = []
+            for number, alternative in enumerate(have.alternatives):
+                if trace is not None:
+                    trace.append(f"{'  ' * indent}variant {number + 1} of {len(have.alternatives)}")
+                outcome = run(pattern, alternative, states, following, trace, indent + 1)
+                if isinstance(outcome, str):
+                    return outcome
+                outcomes.append(outcome)
+            common = set(outcomes[0]).intersection(*outcomes[1:])
+            if not common:
+                return f"the {len(outcomes)} variants Falcon writes after `{describe(pattern, states, have)}` " \
+                       f"end at different fields"
+            merged = {}
+            for outcome in outcomes:
+                for number in common:
+                    add_state(merged, number, outcome[number])
+            states = merged
+            continue
+        if trace is not None:
+            wanted = ", ".join(f"{label} {field}" for field, label in expectations(pattern, states)[:3])
+            trace.append(f"{'  ' * indent}{have.label():14} | {wanted[:100]}")
+        advanced = advance(pattern, states, have, following)
+        if not advanced:
+            return describe(pattern, states, have)
+        states = advanced
+    return states
+
+
+def check(expected, actual, trace=None):
+    pattern = Pattern(expected)
+    outcome = run(pattern, actual, {number: EMPTY_INFO for number in pattern.start}, None, trace)
+    if isinstance(outcome, str):
+        return "mismatch", outcome, EMPTY_INFO
+    if ACCEPT in outcome:
+        return "match", "", outcome[ACCEPT]
+    for number in sorted(outcome, reverse=True):
+        token = pattern.nodes[number].token
+        if token.kind == STOP:
+            return "partial", f"stopped at `{token.field}`: {token.detail}", outcome[number]
+    field, label = expectations(pattern, outcome)[0]
+    return "mismatch", f"`{field}` ({label}) is never written", EMPTY_INFO
 
 
 def packet_ids(header):
@@ -414,20 +757,28 @@ def falcon_protocol(root):
     return int(match.group(1)) if match else None
 
 
+def as_string(head):
+    blob = Token("string", head.field, head.depth)
+    blob.starts = head.starts
+    return blob
+
+
 def merge_length_prefixed(tokens):
     merged = []
     for token in tokens:
+        if token.kind == CHOICE:
+            token.alternatives = [merge_length_prefixed(alternative) for alternative in token.alternatives]
+            shapes = sorted([entry.kind for entry in alternative] for alternative in token.alternatives)
+            if merged and merged[-1].kind == "uvar32" and shapes in BYTE_ARRAYS:
+                merged[-1] = as_string(merged[-1])
+                continue
         if token.kind == "raw" and merged and merged[-1].kind == "uvar32":
-            starts = merged[-1].starts_field
-            merged[-1] = Token("string", merged[-1].field, merged[-1].depth)
-            merged[-1].starts_field = starts
+            merged[-1] = as_string(merged[-1])
             continue
         merged.append(token)
         kinds = [entry.kind for entry in merged[-4:]]
         if len(kinds) == 4 and kinds[:2] == ["uvar32", OPEN] and kinds[2] in ("u8", "cbyte") and kinds[3] == CLOSE:
-            head = merged[-4]
-            blob = Token("string", head.field, head.depth)
-            blob.starts_field = head.starts_field
+            blob = as_string(merged[-4])
             del merged[-4:]
             merged.append(blob)
     return merged
@@ -442,8 +793,18 @@ def falcon_packets(root, index):
             continue
         open_brace = text.index("{", match.end())
         body = text[open_brace + 1:matching(text, open_brace, "{", "}")]
-        packets[match.group(1)] = merge_length_prefixed(falcon_tokens(index, path, body))
+        scope = Scope(path, body)
+        packets[match.group(1)] = merge_length_prefixed(falcon_tokens(index, scope, body))
     return packets
+
+
+def explain(expected, actual):
+    trace = []
+    status, detail, _ = check(expected, actual, trace)
+    for position, line in enumerate(trace):
+        print(f"{position:4} {line}")
+    print()
+    print(f"{status}{': ' + detail if detail else ''}")
 
 
 def main():
@@ -452,23 +813,17 @@ def main():
     parser.add_argument("--docs", type=Path, required=True, help="the json folder of the protocol documentation")
     parser.add_argument("--report", type=Path, default=Path("protocol-report.md"))
     parser.add_argument("--strict", action="store_true", help="exit with 1 when a packet mismatches")
-    parser.add_argument("--explain", metavar="PACKET", help="print both encodings of one packet side by side")
+    parser.add_argument("--explain", metavar="PACKET", help="print how both encodings of one packet line up")
     arguments = parser.parse_args()
 
     docs = MojangDocs(arguments.docs)
-    index = FalconIndex(arguments.protocol / "src")
+    index = FalconIndex(arguments.protocol)
     documented = docs.packets()
     implemented = falcon_packets(arguments.protocol, index)
 
     if arguments.explain:
         expected = merge_length_prefixed(mojang_tokens(docs, documented[arguments.explain][1], "", 0, set()))
-        actual = implemented.get(arguments.explain, [])
-        for position in range(max(len(expected), len(actual))):
-            want = expected[position] if position < len(expected) else None
-            have = actual[position] if position < len(actual) else None
-            left = f"{want.label()} {want.field}" if want else ""
-            right = have.label() if have else ""
-            print(f"{position:4} {left[:90]:90} | {right}")
+        explain(expected, implemented.get(arguments.explain, []))
         return 0
     ids = packet_ids(arguments.protocol / "include" / "Protocol" / "MinecraftPacketIds.h")
 
@@ -479,11 +834,10 @@ def main():
         if name not in documented:
             continue
         expected = merge_length_prefixed(mojang_tokens(docs, documented[name][1], "", 0, set()))
-        notes = {"optional": set(), "cbyte": set()}
-        status, detail, verified, helpers = compare(expected, tokens, notes)
-        results.append((name, status, detail, verified, helpers))
-        optional_notes.extend(f"{name}: {field}" for field in sorted(notes["optional"]))
-        byte_notes.extend(f"{name}: {field}" for field in sorted(notes["cbyte"]))
+        status, detail, info = check(expected, tokens)
+        results.append((name, status, detail, info[VERIFIED], info[HELPERS]))
+        optional_notes.extend(f"{name}: {field}" for field in sorted(info[OPTIONAL]))
+        byte_notes.extend(f"{name}: {field}" for field in sorted(info[BYTES]))
 
     id_mismatches = []
     for name, (packet_id, _) in documented.items():
