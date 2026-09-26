@@ -6,6 +6,20 @@
 #include <cstdint>
 #include <string>
 
+namespace PlaySoundName {
+    inline constexpr const char *SHIELD_BLOCK = "item.shield.block";
+    inline constexpr const char *FUSE = "random.fuse";
+    inline constexpr const char *FIRE_IGNITE = "fire.ignite";
+    inline constexpr const char *TURTLE_EGG_CRACK = "block.turtle_egg.crack";
+    inline constexpr const char *SNIFFER_EGG_CRACK = "block.sniffer_egg.crack";
+    inline constexpr const char *SNIFFER_EGG_HATCH = "block.sniffer_egg.hatch";
+    inline constexpr const char *ANVIL_LAND = "random.anvil_land";
+    inline constexpr const char *POINTED_DRIPSTONE_LAND = "pointed_dripstone.land";
+    inline constexpr const char *ORB = "random.orb";
+    inline constexpr const char *END_PORTAL_FRAME_FILL = "block.end_portal_frame.fill";
+    inline constexpr const char *END_PORTAL_SPAWN = "block.end_portal.spawn";
+}
+
 class PlaySoundPacket : public Packet {
 public:
     static const MinecraftPacketIds ID = MinecraftPacketIds::PlaySound;
