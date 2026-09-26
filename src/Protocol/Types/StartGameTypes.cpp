@@ -1,7 +1,9 @@
 #include "Protocol/Types/StartGameTypes.h"
 
 void ServerConfigurationJoinInfo::write(BinaryStream &stream) const {
-    stream.putOptionalPresent(false); // gatherings configuration
+    stream.putOptionalPresent(mHasGatheringsConfiguration);
+    if (mHasGatheringsConfiguration)
+        mGatheringsConfiguration.write(stream);
 
     stream.putOptionalPresent(mHasClientStoreEntrypoint);
     if (mHasClientStoreEntrypoint) {
@@ -9,12 +11,18 @@ void ServerConfigurationJoinInfo::write(BinaryStream &stream) const {
         stream.putString(mClientStoreEntrypoint.mStoreName);
     }
 
-    stream.putOptionalPresent(false); // presence configuration
+    stream.putOptionalPresent(mHasPresenceConfiguration);
+    if (mHasPresenceConfiguration) {
+        stream.putOptionalPresent(mPresenceConfiguration.mHasRichPresenceId);
+        if (mPresenceConfiguration.mHasRichPresenceId)
+            stream.putString(mPresenceConfiguration.mRichPresenceId);
+    }
 }
 
 void ServerConfigurationJoinInfo::read(ReadOnlyBinaryStream &stream) {
-    if (stream.getOptionalPresent())
-        throw BinaryDataException("Gatherings configuration is not supported");
+    mHasGatheringsConfiguration = stream.getOptionalPresent();
+    if (mHasGatheringsConfiguration)
+        mGatheringsConfiguration.read(stream);
 
     mHasClientStoreEntrypoint = stream.getOptionalPresent();
     if (mHasClientStoreEntrypoint) {
@@ -22,8 +30,12 @@ void ServerConfigurationJoinInfo::read(ReadOnlyBinaryStream &stream) {
         mClientStoreEntrypoint.mStoreName = stream.getString();
     }
 
-    if (stream.getOptionalPresent())
-        throw BinaryDataException("Presence configuration is not supported");
+    mHasPresenceConfiguration = stream.getOptionalPresent();
+    if (mHasPresenceConfiguration) {
+        mPresenceConfiguration.mHasRichPresenceId = stream.getOptionalPresent();
+        if (mPresenceConfiguration.mHasRichPresenceId)
+            mPresenceConfiguration.mRichPresenceId = stream.getString();
+    }
 }
 
 GameRuleData GameRuleData::ofBool(const std::string &name, bool value, bool editable) {

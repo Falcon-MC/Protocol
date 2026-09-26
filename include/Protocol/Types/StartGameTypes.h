@@ -2,6 +2,7 @@
 
 #include "Core/NBT/Tag.h"
 #include "Core/Utility/BinaryStream.h"
+#include "Protocol/Types/GatheringsConfigurationJoinInfo.h"
 
 #include <string>
 #include <vector>
@@ -73,11 +74,18 @@ struct ClientStoreEntrypointConfiguration {
     std::string mStoreName;
 };
 
-// Only the client store entrypoint is modelled, the gatherings and presence payloads are always
-// written as absent because their layouts are not implemented yet.
+struct PresenceConfiguration {
+    bool mHasRichPresenceId = false;
+    std::string mRichPresenceId;
+};
+
 struct ServerConfigurationJoinInfo {
+    bool mHasGatheringsConfiguration = false;
+    GatheringsConfigurationJoinInfo mGatheringsConfiguration;
     bool mHasClientStoreEntrypoint = false;
     ClientStoreEntrypointConfiguration mClientStoreEntrypoint;
+    bool mHasPresenceConfiguration = false;
+    PresenceConfiguration mPresenceConfiguration;
 
     void write(BinaryStream &stream) const;
 
