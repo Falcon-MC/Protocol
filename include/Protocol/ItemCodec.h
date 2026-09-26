@@ -14,4 +14,8 @@ public:
     static void writeNetworkItemStackDescriptor(BinaryStream &stream, const PacketCodecContext &context, const ItemStack &item);
 
     static ItemStack readNetworkItemStackDescriptor(ReadOnlyBinaryStream &stream, const PacketCodecContext &context);
+
+    static void writeRequestItemDescriptor(BinaryStream &stream, const PacketCodecContext &context, const ItemStack &item);
+
+    static ItemStack readRequestItemDescriptor(ReadOnlyBinaryStream &stream, const PacketCodecContext &context);
 };

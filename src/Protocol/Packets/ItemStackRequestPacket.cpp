@@ -1,14 +1,11 @@
 #include "Protocol/Packets/ItemStackRequestPacket.h"
 
-#include "Core/NBT/NbtIo.h"
-#include "Core/Utility/BinaryDataException.h"
+#include "Protocol/ItemCodec.h"
 #include "Protocol/NetworkPacketHandler.h"
 #include "Protocol/Types/ContainerSlotType.h"
 #include "Protocol/Types/FullContainerName.h"
 
 namespace {
-    const std::string BLOCKING_ID = "minecraft:shield";
-
     void writeFullContainerName(BinaryStream &stream, const FullContainerName &name) {
         stream.putByte((unsigned char) containerSlotTypeToId(name.mContainer));
         stream.putOptionalPresent(name.mHasDynamicId);
@@ -63,110 +60,6 @@ namespace {
         }
 
         stream.getLShort();
-    }
-
-    void writeItemStackRequestNetworkItemInstanceDescriptor(BinaryStream &stream, const PacketCodecContext &context,
-                                                            const ItemStack &item) {
-        bool air = item.isAir();
-        stream.putUnsignedVarInt(air ? 0 : 1);
-        stream.putByte(air ? 0 : 1);
-        if (!air) {
-            stream.putString(item.mDefinition->getIdentifier());
-            stream.putVarInt(item.mDamage);
-        }
-
-        stream.putLShort((uint16_t) item.mCount);
-        stream.putUnsignedVarInt(air || item.mBlockDefinition == nullptr ? 0 : (uint32_t) item.mBlockDefinition->getRuntimeId());
-
-        if (air) {
-            stream.putString("");
-            return;
-        }
-
-        BinaryStream userData;
-        if (item.mTag.getType() != Tag::Type::End) {
-            userData.putLShort(0xffff);
-            userData.putByte(1);
-            NbtIo::writeTag(userData, item.mTag, NbtVariant::LittleEndian);
-        } else {
-            userData.putLShort(0);
-        }
-
-        userData.putLInt((uint32_t) item.mCanPlace.size());
-        for (const std::string &entry: item.mCanPlace) {
-            userData.putLShort((uint16_t) entry.size());
-            userData.put(entry);
-        }
-
-        userData.putLInt((uint32_t) item.mCanBreak.size());
-        for (const std::string &entry: item.mCanBreak) {
-            userData.putLShort((uint16_t) entry.size());
-            userData.put(entry);
-        }
-
-        if (item.mDefinition->getIdentifier() == BLOCKING_ID) {
-            userData.putLLong((uint64_t) item.mBlockingTicks);
-        }
-
-        stream.putUnsignedVarInt((uint32_t) userData.size());
-        stream.put(userData.getBuffer());
-    }
-
-    ItemStack readItemStackRequestNetworkItemInstanceDescriptor(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
-        int32_t type = (int32_t) stream.getUnsignedVarInt();
-        stream.getByte();
-
-        ItemStack item;
-        if (type != 0) {
-            std::string identifier = stream.getString();
-            int32_t damage = stream.getVarInt();
-            item.mDefinition = context.getItemDefinitions().getDefinition(identifier);
-            item.mDamage = damage;
-        }
-
-        item.mCount = stream.getLShort();
-
-        int32_t blockRuntimeId = (int32_t) stream.getUnsignedVarInt();
-        if (blockRuntimeId != 0) {
-            item.mBlockDefinition = context.getBlockDefinitions().getDefinition(blockRuntimeId);
-        }
-
-        uint32_t userDataLength = stream.getUnsignedVarInt();
-        std::string userDataBytes = stream.get(userDataLength);
-        if (userDataBytes.empty()) {
-            return item;
-        }
-
-        ReadOnlyBinaryStream userData(userDataBytes);
-        uint16_t nbtSize = userData.getLShort();
-        if (nbtSize == 0xffff) {
-            unsigned char tagCount = userData.getByte();
-            if (tagCount != 1) {
-                throw BinaryDataException("Expected 1 tag but got " + std::to_string((int) tagCount));
-            }
-            item.mTag = NbtIo::readTag(userData, NbtVariant::LittleEndian);
-        } else if (nbtSize > 0) {
-            item.mTag = NbtIo::readTag(userData, NbtVariant::LittleEndian);
-        }
-
-        uint32_t canPlaceLength = userData.getLInt();
-        item.mCanPlace.reserve(canPlaceLength);
-        for (uint32_t i = 0; i < canPlaceLength; i++) {
-            item.mCanPlace.push_back(userData.get(userData.getLShort()));
-        }
-
-        uint32_t canBreakLength = userData.getLInt();
-        item.mCanBreak.reserve(canBreakLength);
-        for (uint32_t i = 0; i < canBreakLength; i++) {
-            item.mCanBreak.push_back(userData.get(userData.getLShort()));
-        }
-
-        if (item.mDefinition != nullptr && item.mDefinition->getIdentifier() == BLOCKING_ID
-                && userData.getRemainingLength() >= 8) {
-            item.mBlockingTicks = userData.getLLong();
-        }
-
-        return item;
     }
 
     void writeRequestActionData(BinaryStream &stream, const PacketCodecContext &context, const ItemStackRequestAction &action) {
@@ -235,7 +128,7 @@ namespace {
             case ItemStackRequestActionType::CraftResultsDeprecated:
                 stream.putArrayLength((uint32_t) action.mResultItems.size());
                 for (const ItemStack &item: action.mResultItems) {
-                    writeItemStackRequestNetworkItemInstanceDescriptor(stream, context, item);
+                    ItemCodec::writeRequestItemDescriptor(stream, context, item);
                 }
                 stream.putByte((unsigned char) action.mTimesCrafted);
                 break;
@@ -317,7 +210,7 @@ namespace {
                 uint32_t count = stream.getArrayLength();
                 action.mResultItems.reserve(count);
                 for (uint32_t i = 0; i < count; i++) {
-                    action.mResultItems.push_back(readItemStackRequestNetworkItemInstanceDescriptor(stream, context));
+                    action.mResultItems.push_back(ItemCodec::readRequestItemDescriptor(stream, context));
                 }
                 action.mTimesCrafted = stream.getByte();
                 break;
