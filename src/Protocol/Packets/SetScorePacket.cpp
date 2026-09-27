@@ -32,7 +32,6 @@ void SetScorePacket::write(BinaryStream &stream, const PacketCodecContext &conte
 
         switch (info.mType) {
             case ScorerType::Invalid:
-                stream.putByte(1);
                 stream.putOptionalPresent(!info.mObjectiveId.empty());
                 if (!info.mObjectiveId.empty())
                     stream.putString(info.mObjectiveId);
@@ -63,7 +62,6 @@ void SetScorePacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext
 
         switch (info.mType) {
             case ScorerType::Invalid:
-                stream.getByte();
                 if (stream.getOptionalPresent())
                     info.mObjectiveId = stream.getString();
                 break;
