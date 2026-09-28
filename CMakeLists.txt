@@ -23,3 +23,11 @@ add_library(FalconProtocol STATIC ${FALCON_PROTOCOL_SOURCES})
 
 target_include_directories(FalconProtocol PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(FalconProtocol PUBLIC FalconNBT)
+
+option(FALCON_PROTOCOL_BUILD_TESTS "Build protocol regression tests" OFF)
+if(FALCON_PROTOCOL_BUILD_TESTS)
+    enable_testing()
+    add_executable(FalconProtocolInventoryDecodeTest tests/InventoryDecode.cpp)
+    target_link_libraries(FalconProtocolInventoryDecodeTest PRIVATE FalconProtocol)
+    add_test(NAME inventory-decode COMMAND FalconProtocolInventoryDecodeTest)
+endif()

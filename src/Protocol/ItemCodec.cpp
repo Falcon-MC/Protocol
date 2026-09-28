@@ -97,6 +97,11 @@ ItemStack ItemCodec::readItemInstance(ReadOnlyBinaryStream &stream, const Packet
 
     uint32_t userDataLength = stream.getUnsignedVarInt();
     std::string userDataBytes = stream.get(userDataLength);
+    if (userDataBytes.empty()) {
+        applyNetworkDamage(item);
+        return item;
+    }
+
     ReadOnlyBinaryStream userData(userDataBytes);
 
     uint16_t nbtSize = userData.getLShort();
@@ -317,6 +322,11 @@ ItemStack ItemCodec::readNetworkItemStackDescriptor(ReadOnlyBinaryStream &stream
 
     uint32_t userDataLength = stream.getUnsignedVarInt();
     std::string userDataBytes = stream.get(userDataLength);
+    if (userDataBytes.empty()) {
+        applyNetworkDamage(item);
+        return item;
+    }
+
     ReadOnlyBinaryStream userData(userDataBytes);
 
     uint16_t nbtSize = userData.getLShort();
