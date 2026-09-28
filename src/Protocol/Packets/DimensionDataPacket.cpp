@@ -8,8 +8,8 @@ void DimensionDataPacket::write(BinaryStream &stream, const PacketCodecContext &
     stream.putArrayLength((uint32_t) mDefinitions.size());
     for (const DimensionDefinition &definition: mDefinitions) {
         stream.putString(definition.mId);
-        stream.putVarInt(definition.mMaximumHeight);
         stream.putVarInt(definition.mMinimumHeight);
+        stream.putVarInt(definition.mMaximumHeight);
         stream.putVarInt(definition.mGeneratorType);
         stream.putVarInt(definition.mDimensionType);
         stream.putUuid(definition.mPackId);
@@ -22,8 +22,8 @@ void DimensionDataPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecCo
     for (uint32_t i = 0; i < count; i++) {
         DimensionDefinition definition;
         definition.mId = stream.getString();
-        definition.mMaximumHeight = stream.getVarInt();
         definition.mMinimumHeight = stream.getVarInt();
+        definition.mMaximumHeight = stream.getVarInt();
         definition.mGeneratorType = stream.getVarInt();
         definition.mDimensionType = stream.getVarInt();
         definition.mPackId = stream.getUuid();
