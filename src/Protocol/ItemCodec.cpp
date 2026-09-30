@@ -23,6 +23,44 @@ namespace {
         return tag;
     }
 
+    void writeUserData(BinaryStream &stream, const ItemStack &item) {
+        if (!item.mUserData.empty()) {
+            stream.putUnsignedVarInt((uint32_t) item.mUserData.size());
+            stream.put(item.mUserData);
+            return;
+        }
+
+        const Tag networkTag = networkItemTag(item);
+
+        BinaryStream userData;
+        if (networkTag.getType() != Tag::Type::End) {
+            userData.putLShort(0xffff);
+            userData.putByte(1);
+            NbtIo::writeTag(userData, networkTag, NbtVariant::LittleEndian);
+        } else {
+            userData.putLShort(0);
+        }
+
+        userData.putLInt((uint32_t) item.mCanPlace.size());
+        for (const std::string &entry: item.mCanPlace) {
+            userData.putLShort((uint16_t) entry.size());
+            userData.put(entry);
+        }
+
+        userData.putLInt((uint32_t) item.mCanBreak.size());
+        for (const std::string &entry: item.mCanBreak) {
+            userData.putLShort((uint16_t) entry.size());
+            userData.put(entry);
+        }
+
+        if (item.mDefinition->getIdentifier() == BLOCKING_ID) {
+            userData.putLLong((uint64_t) item.mBlockingTicks);
+        }
+
+        stream.putUnsignedVarInt((uint32_t) userData.size());
+        stream.put(userData.getBuffer());
+    }
+
     void applyNetworkDamage(ItemStack &item) {
         if (item.mTag.isCompound() && item.mTag.get("Damage") != nullptr)
             item.mDamage = item.mTag.getInt("Damage", item.mDamage);
@@ -44,35 +82,7 @@ void ItemCodec::writeItemInstance(BinaryStream &stream, const PacketCodecContext
     stream.putUnsignedVarInt((uint32_t) item.mDamage);
     stream.putVarInt(item.mBlockDefinition == nullptr ? 0 : item.mBlockDefinition->getRuntimeId());
 
-    const Tag networkTag = networkItemTag(item);
-
-    BinaryStream userData;
-    if (networkTag.getType() != Tag::Type::End) {
-        userData.putLShort(0xffff);
-        userData.putByte(1);
-        NbtIo::writeTag(userData, networkTag, NbtVariant::LittleEndian);
-    } else {
-        userData.putLShort(0);
-    }
-
-    userData.putLInt((uint32_t) item.mCanPlace.size());
-    for (const std::string &entry: item.mCanPlace) {
-        userData.putLShort((uint16_t) entry.size());
-        userData.put(entry);
-    }
-
-    userData.putLInt((uint32_t) item.mCanBreak.size());
-    for (const std::string &entry: item.mCanBreak) {
-        userData.putLShort((uint16_t) entry.size());
-        userData.put(entry);
-    }
-
-    if (item.mDefinition->getIdentifier() == BLOCKING_ID) {
-        userData.putLLong((uint64_t) item.mBlockingTicks);
-    }
-
-    stream.putUnsignedVarInt((uint32_t) userData.size());
-    stream.put(userData.getBuffer());
+    writeUserData(stream, item);
 }
 
 ItemStack ItemCodec::readItemInstance(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
@@ -97,6 +107,7 @@ ItemStack ItemCodec::readItemInstance(ReadOnlyBinaryStream &stream, const Packet
 
     uint32_t userDataLength = stream.getUnsignedVarInt();
     std::string userDataBytes = stream.get(userDataLength);
+    item.mUserData = userDataBytes;
     if (userDataBytes.empty()) {
         applyNetworkDamage(item);
         return item;
@@ -158,35 +169,7 @@ void ItemCodec::writeNetworkItemStackDescriptor(BinaryStream &stream, const Pack
 
     stream.putUnsignedVarInt(item.mBlockDefinition == nullptr ? 0 : (uint32_t) item.mBlockDefinition->getRuntimeId());
 
-    const Tag networkTag = networkItemTag(item);
-
-    BinaryStream userData;
-    if (networkTag.getType() != Tag::Type::End) {
-        userData.putLShort(0xffff);
-        userData.putByte(1);
-        NbtIo::writeTag(userData, networkTag, NbtVariant::LittleEndian);
-    } else {
-        userData.putLShort(0);
-    }
-
-    userData.putLInt((uint32_t) item.mCanPlace.size());
-    for (const std::string &entry: item.mCanPlace) {
-        userData.putLShort((uint16_t) entry.size());
-        userData.put(entry);
-    }
-
-    userData.putLInt((uint32_t) item.mCanBreak.size());
-    for (const std::string &entry: item.mCanBreak) {
-        userData.putLShort((uint16_t) entry.size());
-        userData.put(entry);
-    }
-
-    if (item.mDefinition->getIdentifier() == BLOCKING_ID) {
-        userData.putLLong((uint64_t) item.mBlockingTicks);
-    }
-
-    stream.putUnsignedVarInt((uint32_t) userData.size());
-    stream.put(userData.getBuffer());
+    writeUserData(stream, item);
 }
 
 void ItemCodec::writeRequestItemDescriptor(BinaryStream &stream, const PacketCodecContext &context,
@@ -258,6 +241,7 @@ ItemStack ItemCodec::readRequestItemDescriptor(ReadOnlyBinaryStream &stream, con
 
     uint32_t userDataLength = stream.getUnsignedVarInt();
     std::string userDataBytes = stream.get(userDataLength);
+    item.mUserData = userDataBytes;
     if (userDataBytes.empty()) {
         return item;
     }
@@ -322,6 +306,7 @@ ItemStack ItemCodec::readNetworkItemStackDescriptor(ReadOnlyBinaryStream &stream
 
     uint32_t userDataLength = stream.getUnsignedVarInt();
     std::string userDataBytes = stream.get(userDataLength);
+    item.mUserData = userDataBytes;
     if (userDataBytes.empty()) {
         applyNetworkDamage(item);
         return item;
