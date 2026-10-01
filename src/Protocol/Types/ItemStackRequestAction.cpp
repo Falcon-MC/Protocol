@@ -22,6 +22,7 @@ namespace {
         ItemStackRequestActionType::CraftRecipeOptional,
         ItemStackRequestActionType::CraftRepairAndDisenchant,
         ItemStackRequestActionType::CraftLoom,
+        ItemStackRequestActionType::CraftReserved,
         ItemStackRequestActionType::CraftNonImplemented,
         ItemStackRequestActionType::CraftResultsDeprecated,
     };

@@ -137,6 +137,9 @@ class ServerboundStonecutterSetRecipePacket;
 class ClientboundStonecutterSetRecipePacket;
 class ServerboundMatchmakingCancelPacket;
 class SetPassengerOfBlockPacket;
+class ServerboundCursorItemDragPacket;
+class ClientboundPlayAudioContentPacket;
+class ServerboundRegisterAudioContentPacket;
 class PhotoInfoRequestPacket;
 class PhotoTransferPacket;
 class PlayStatusPacket;
@@ -522,6 +525,12 @@ public:
     virtual void handle(const NetworkIdentifier &, const ServerboundMatchmakingCancelPacket &) {}
 
     virtual void handle(const NetworkIdentifier &, const SetPassengerOfBlockPacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const ServerboundCursorItemDragPacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const ClientboundPlayAudioContentPacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const ServerboundRegisterAudioContentPacket &) {}
 
     virtual void handle(const NetworkIdentifier &, const PhotoInfoRequestPacket &) {}
 

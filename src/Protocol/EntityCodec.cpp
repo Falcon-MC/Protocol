@@ -197,6 +197,30 @@ EntityLinkData EntityCodec::readEntityLink(ReadOnlyBinaryStream &stream) {
     return link;
 }
 
+void EntityCodec::writePassengerOfBlock(BinaryStream &stream, bool present, const PassengerOfBlockData &data) {
+    stream.putOptionalPresent(present);
+    if (!present)
+        return;
+
+    stream.putBlockPosition(data.mBlockPosition);
+    stream.putVector3f(data.mOffset);
+    stream.putLFloat(data.mRotation);
+    stream.putLFloat(data.mRotationLimit);
+    stream.putByte((unsigned char) data.mEmoteType);
+}
+
+bool EntityCodec::readPassengerOfBlock(ReadOnlyBinaryStream &stream, PassengerOfBlockData &data) {
+    if (!stream.getOptionalPresent())
+        return false;
+
+    data.mBlockPosition = stream.getBlockPosition();
+    data.mOffset = stream.getVector3f();
+    data.mRotation = stream.getLFloat();
+    data.mRotationLimit = stream.getLFloat();
+    data.mEmoteType = (PassengerOfBlockEmoteType) stream.getByte();
+    return true;
+}
+
 void EntityCodec::writePlayerAbilities(BinaryStream &stream, const PlayerAbilityData &abilities) {
     stream.putLLong((uint64_t) abilities.mUniqueActorId);
     stream.putByte(abilities.mPlayerPermission);

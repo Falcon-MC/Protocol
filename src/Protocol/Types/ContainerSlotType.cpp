@@ -69,6 +69,10 @@ namespace {
         ContainerSlotType::RecipeFoodContainer,
         ContainerSlotType::RecipeBlocksContainer,
         ContainerSlotType::RecipeFurnaceItemsContainer,
+        ContainerSlotType::ReservedA,
+        ContainerSlotType::ReservedB,
+        ContainerSlotType::ReservedC,
+        ContainerSlotType::ReservedD,
     };
 
     const int32_t TYPE_COUNT = sizeof(TYPES_BY_ID) / sizeof(TYPES_BY_ID[0]);

@@ -25,6 +25,7 @@ enum class ItemStackRequestActionType {
     CraftRecipeOptional,
     CraftRepairAndDisenchant,
     CraftLoom,
+    CraftReserved,
     CraftNonImplemented,
     CraftResultsDeprecated,
 };
@@ -63,6 +64,8 @@ public:
     int32_t mRepairCost = 0;
 
     std::string mPatternId;
+
+    std::string mReservedId;
     int32_t mTimesCrafted = 0;
 
     std::vector<ItemStack> mResultItems;

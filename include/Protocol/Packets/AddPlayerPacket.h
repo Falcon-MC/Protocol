@@ -6,6 +6,7 @@
 #include "Protocol/Types/EntityDataMap.h"
 #include "Protocol/Types/EntityLinkData.h"
 #include "Protocol/Types/EntityProperties.h"
+#include "Protocol/Types/PassengerOfBlockData.h"
 #include "Protocol/Types/ItemStack.h"
 #include "Protocol/Types/PlayerAbilityData.h"
 
@@ -42,6 +43,8 @@ public:
     EntityProperties mProperties;
     PlayerAbilityData mAbilities;
     std::vector<EntityLinkData> mActorLinks;
+    bool mHasPassengerOfBlock = false;
+    PassengerOfBlockData mPassengerOfBlock;
     std::string mDeviceId;
     int32_t mBuildPlatform = 0;
 };

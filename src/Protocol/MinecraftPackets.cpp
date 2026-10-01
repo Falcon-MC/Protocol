@@ -52,6 +52,7 @@
 #include "Protocol/Packets/ClientboundDebugRendererPacket.h"
 #include "Protocol/Packets/ClientboundMapItemDataPacket.h"
 #include "Protocol/Packets/ClientboundMatchmakingStatePacket.h"
+#include "Protocol/Packets/ClientboundPlayAudioContentPacket.h"
 #include "Protocol/Packets/ClientboundStonecutterSetRecipePacket.h"
 #include "Protocol/Packets/ClientboundTextureShiftPacket.h"
 #include "Protocol/Packets/ClientboundUpdateSoundDataPacket.h"
@@ -177,12 +178,14 @@
 #include "Protocol/Packets/ServerStatsPacket.h"
 #include "Protocol/Packets/ServerStoreInfoPacket.h"
 #include "Protocol/Packets/ServerToClientHandshakePacket.h"
+#include "Protocol/Packets/ServerboundCursorItemDragPacket.h"
 #include "Protocol/Packets/ServerboundDataDrivenScreenClosedPacket.h"
 #include "Protocol/Packets/ServerboundDataStorePacket.h"
 #include "Protocol/Packets/ServerboundDiagnosticsPacket.h"
 #include "Protocol/Packets/ServerboundLoadingScreenPacket.h"
 #include "Protocol/Packets/ServerboundMatchmakingCancelPacket.h"
 #include "Protocol/Packets/ServerboundPackSettingChangePacket.h"
+#include "Protocol/Packets/ServerboundRegisterAudioContentPacket.h"
 #include "Protocol/Packets/ServerboundStonecutterSetRecipePacket.h"
 #include "Protocol/Packets/SetActorDataPacket.h"
 #include "Protocol/Packets/SetActorLinkPacket.h"
@@ -330,6 +333,7 @@ void MinecraftPackets::_registerDefaultPackets() {
     registerPacket<ClientboundDebugRendererPacket>();
     registerPacket<ClientboundMapItemDataPacket>();
     registerPacket<ClientboundMatchmakingStatePacket>();
+    registerPacket<ClientboundPlayAudioContentPacket>();
     registerPacket<ClientboundStonecutterSetRecipePacket>();
     registerPacket<ClientboundTextureShiftPacket>();
     registerPacket<ClientboundUpdateSoundDataPacket>();
@@ -455,12 +459,14 @@ void MinecraftPackets::_registerDefaultPackets() {
     registerPacket<ServerStatsPacket>();
     registerPacket<ServerStoreInfoPacket>();
     registerPacket<ServerToClientHandshakePacket>();
+    registerPacket<ServerboundCursorItemDragPacket>();
     registerPacket<ServerboundDataDrivenScreenClosedPacket>();
     registerPacket<ServerboundDataStorePacket>();
     registerPacket<ServerboundDiagnosticsPacket>();
     registerPacket<ServerboundLoadingScreenPacket>();
     registerPacket<ServerboundMatchmakingCancelPacket>();
     registerPacket<ServerboundPackSettingChangePacket>();
+    registerPacket<ServerboundRegisterAudioContentPacket>();
     registerPacket<ServerboundStonecutterSetRecipePacket>();
     registerPacket<SetActorDataPacket>();
     registerPacket<SetActorLinkPacket>();

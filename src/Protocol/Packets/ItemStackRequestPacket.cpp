@@ -125,6 +125,10 @@ namespace {
                 stream.putString(action.mPatternId);
                 stream.putByte((unsigned char) action.mTimesCrafted);
                 break;
+            case ItemStackRequestActionType::CraftReserved:
+                stream.putString(action.mReservedId);
+                stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
+                break;
             case ItemStackRequestActionType::CraftResultsDeprecated:
                 stream.putArrayLength((uint32_t) action.mResultItems.size());
                 for (const ItemStack &item: action.mResultItems) {
@@ -205,6 +209,10 @@ namespace {
             case ItemStackRequestActionType::CraftLoom:
                 action.mPatternId = stream.getString();
                 action.mTimesCrafted = stream.getByte();
+                break;
+            case ItemStackRequestActionType::CraftReserved:
+                action.mReservedId = stream.getString();
+                action.mNumberOfRequestedCrafts = stream.getByte();
                 break;
             case ItemStackRequestActionType::CraftResultsDeprecated: {
                 uint32_t count = stream.getArrayLength();

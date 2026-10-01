@@ -248,7 +248,10 @@ enum class MinecraftPacketIds : int {
     ServerboundStonecutterSetRecipe = 354,
     ClientboundStonecutterSetRecipe = 355,
     ServerboundMatchmakingCancel = 356,
-    SetPassengerOfBlock = 357
+    SetPassengerOfBlock = 357,
+    ServerboundCursorItemDrag = 358,
+    ClientboundPlayAudioContent = 359,
+    ServerboundRegisterAudioContent = 360
 };
 
 const char *toString(MinecraftPacketIds id);

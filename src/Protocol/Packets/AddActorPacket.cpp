@@ -30,6 +30,8 @@ void AddActorPacket::write(BinaryStream &stream, const PacketCodecContext &conte
     for (const EntityLinkData &link: mActorLinks) {
         EntityCodec::writeEntityLink(stream, link);
     }
+
+    EntityCodec::writePassengerOfBlock(stream, mHasPassengerOfBlock, mPassengerOfBlock);
 }
 
 void AddActorPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
@@ -64,6 +66,8 @@ void AddActorPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext
     for (uint32_t i = 0; i < linkCount; i++) {
         mActorLinks.push_back(EntityCodec::readEntityLink(stream));
     }
+
+    mHasPassengerOfBlock = EntityCodec::readPassengerOfBlock(stream, mPassengerOfBlock);
 }
 
 void AddActorPacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {

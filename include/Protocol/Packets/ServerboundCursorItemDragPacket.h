@@ -1,19 +1,23 @@
 #pragma once
 
 #include "Protocol/Packet.h"
-#include "Protocol/Types/PassengerOfBlockData.h"
 
 #include <cstdint>
 
-class SetPassengerOfBlockPacket : public Packet {
+class ServerboundCursorItemDragPacket : public Packet {
 public:
-    static const MinecraftPacketIds ID = MinecraftPacketIds::SetPassengerOfBlock;
+    static const MinecraftPacketIds ID = MinecraftPacketIds::ServerboundCursorItemDrag;
 
-    SetPassengerOfBlockPacket();
+    enum class State : uint8_t {
+        Start = 0,
+        Stop = 1
+    };
+
+    ServerboundCursorItemDragPacket();
 
     MinecraftPacketIds getId() const override { return ID; }
 
-    const char *getName() const override { return "SetPassengerOfBlockPacket"; }
+    const char *getName() const override { return "ServerboundCursorItemDragPacket"; }
 
     void write(BinaryStream &stream, const PacketCodecContext &context) const override;
 
@@ -21,7 +25,5 @@ public:
 
     void handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const override;
 
-    int64_t mPassengerUniqueId = 0;
-    bool mHasData = false;
-    PassengerOfBlockData mData;
+    State mState = State::Start;
 };

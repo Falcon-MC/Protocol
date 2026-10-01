@@ -476,6 +476,12 @@ const char *toString(MinecraftPacketIds id) {
             return "ServerboundMatchmakingCancel";
         case MinecraftPacketIds::SetPassengerOfBlock:
             return "SetPassengerOfBlock";
+        case MinecraftPacketIds::ServerboundCursorItemDrag:
+            return "ServerboundCursorItemDrag";
+        case MinecraftPacketIds::ClientboundPlayAudioContent:
+            return "ClientboundPlayAudioContent";
+        case MinecraftPacketIds::ServerboundRegisterAudioContent:
+            return "ServerboundRegisterAudioContent";
         default:
             return "Unknown";
     }

@@ -55,10 +55,12 @@ namespace {
                 return 16;
             case ItemStackRequestActionType::CraftLoom:
                 return 17;
-            case ItemStackRequestActionType::CraftNonImplemented:
+            case ItemStackRequestActionType::CraftReserved:
                 return 18;
-            case ItemStackRequestActionType::CraftResultsDeprecated:
+            case ItemStackRequestActionType::CraftNonImplemented:
                 return 19;
+            case ItemStackRequestActionType::CraftResultsDeprecated:
+                return 20;
         }
         return 0;
     }
@@ -225,6 +227,10 @@ namespace {
                 stream.putString(action.mPatternId);
                 stream.putByte((unsigned char) action.mTimesCrafted);
                 break;
+            case ItemStackRequestActionType::CraftReserved:
+                stream.putString(action.mReservedId);
+                stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
+                break;
             case ItemStackRequestActionType::CraftNonImplemented:
                 break;
             case ItemStackRequestActionType::CraftRecipeAuto:
@@ -306,6 +312,10 @@ namespace {
             case ItemStackRequestActionType::CraftLoom:
                 action.mPatternId = stream.getString();
                 action.mTimesCrafted = stream.getByte();
+                break;
+            case ItemStackRequestActionType::CraftReserved:
+                action.mReservedId = stream.getString();
+                action.mNumberOfRequestedCrafts = stream.getByte();
                 break;
             case ItemStackRequestActionType::CraftNonImplemented:
                 break;

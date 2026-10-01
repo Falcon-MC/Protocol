@@ -6,6 +6,7 @@
 #include "Protocol/Types/EntityDataMap.h"
 #include "Protocol/Types/EntityLinkData.h"
 #include "Protocol/Types/EntityProperties.h"
+#include "Protocol/Types/PassengerOfBlockData.h"
 #include "Protocol/Types/PlayerAbilityData.h"
 
 class EntityCodec {
@@ -25,6 +26,10 @@ public:
     static void writeEntityLink(BinaryStream &stream, const EntityLinkData &link);
 
     static EntityLinkData readEntityLink(ReadOnlyBinaryStream &stream);
+
+    static void writePassengerOfBlock(BinaryStream &stream, bool present, const PassengerOfBlockData &data);
+
+    static bool readPassengerOfBlock(ReadOnlyBinaryStream &stream, PassengerOfBlockData &data);
 
     static void writePlayerAbilities(BinaryStream &stream, const PlayerAbilityData &abilities);
 

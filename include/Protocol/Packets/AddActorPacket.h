@@ -6,6 +6,7 @@
 #include "Protocol/Types/EntityDataMap.h"
 #include "Protocol/Types/EntityLinkData.h"
 #include "Protocol/Types/EntityProperties.h"
+#include "Protocol/Types/PassengerOfBlockData.h"
 
 #include <cstdint>
 #include <string>
@@ -30,6 +31,8 @@ public:
     std::vector<AttributeData> mAttributes;
     EntityDataMap mMetadata;
     std::vector<EntityLinkData> mActorLinks;
+    bool mHasPassengerOfBlock = false;
+    PassengerOfBlockData mPassengerOfBlock;
     int64_t mUniqueActorId = 0;
     int64_t mRuntimeActorId = 0;
     std::string mIdentifier;
