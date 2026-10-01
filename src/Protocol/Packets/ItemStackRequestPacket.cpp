@@ -1,14 +1,11 @@
 #include "Protocol/Packets/ItemStackRequestPacket.h"
 
-#include "Core/NBT/NbtIo.h"
-#include "Core/Utility/BinaryDataException.h"
+#include "Protocol/ItemCodec.h"
 #include "Protocol/NetworkPacketHandler.h"
 #include "Protocol/Types/ContainerSlotType.h"
 #include "Protocol/Types/FullContainerName.h"
 
 namespace {
-    const std::string BLOCKING_ID = "minecraft:shield";
-
     void writeFullContainerName(BinaryStream &stream, const FullContainerName &name) {
         stream.putByte((unsigned char) containerSlotTypeToId(name.mContainer));
         stream.putOptionalPresent(name.mHasDynamicId);
@@ -65,110 +62,6 @@ namespace {
         stream.getLShort();
     }
 
-    void writeItemStackRequestNetworkItemInstanceDescriptor(BinaryStream &stream, const PacketCodecContext &context,
-                                                            const ItemStack &item) {
-        bool air = item.isAir();
-        stream.putUnsignedVarInt(air ? 0 : 1);
-        stream.putByte(air ? 0 : 1);
-        if (!air) {
-            stream.putString(item.mDefinition->getIdentifier());
-            stream.putVarInt(item.mDamage);
-        }
-
-        stream.putLShort((uint16_t) item.mCount);
-        stream.putUnsignedVarInt(air || item.mBlockDefinition == nullptr ? 0 : (uint32_t) item.mBlockDefinition->getRuntimeId());
-
-        if (air) {
-            stream.putUnsignedVarInt(0);
-            return;
-        }
-
-        BinaryStream userData;
-        if (item.mTag.getType() != Tag::Type::End) {
-            userData.putLShort(0xffff);
-            userData.putByte(1);
-            NbtIo::writeTag(userData, item.mTag, NbtVariant::LittleEndian);
-        } else {
-            userData.putLShort(0);
-        }
-
-        userData.putLInt((uint32_t) item.mCanPlace.size());
-        for (const std::string &entry: item.mCanPlace) {
-            userData.putLShort((uint16_t) entry.size());
-            userData.put(entry);
-        }
-
-        userData.putLInt((uint32_t) item.mCanBreak.size());
-        for (const std::string &entry: item.mCanBreak) {
-            userData.putLShort((uint16_t) entry.size());
-            userData.put(entry);
-        }
-
-        if (item.mDefinition->getIdentifier() == BLOCKING_ID) {
-            userData.putLLong((uint64_t) item.mBlockingTicks);
-        }
-
-        stream.putUnsignedVarInt((uint32_t) userData.size());
-        stream.put(userData.getBuffer());
-    }
-
-    ItemStack readItemStackRequestNetworkItemInstanceDescriptor(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
-        int32_t type = (int32_t) stream.getUnsignedVarInt();
-        stream.getByte();
-
-        ItemStack item;
-        if (type != 0) {
-            std::string identifier = stream.getString();
-            int32_t damage = stream.getVarInt();
-            item.mDefinition = context.getItemDefinitions().getDefinition(identifier);
-            item.mDamage = damage;
-        }
-
-        item.mCount = stream.getLShort();
-
-        int32_t blockRuntimeId = (int32_t) stream.getUnsignedVarInt();
-        if (blockRuntimeId != 0) {
-            item.mBlockDefinition = context.getBlockDefinitions().getDefinition(blockRuntimeId);
-        }
-
-        uint32_t userDataLength = stream.getUnsignedVarInt();
-        std::string userDataBytes = stream.get(userDataLength);
-        if (userDataBytes.empty()) {
-            return item;
-        }
-
-        ReadOnlyBinaryStream userData(userDataBytes);
-        uint16_t nbtSize = userData.getLShort();
-        if (nbtSize == 0xffff) {
-            unsigned char tagCount = userData.getByte();
-            if (tagCount != 1) {
-                throw BinaryDataException("Expected 1 tag but got " + std::to_string((int) tagCount));
-            }
-            item.mTag = NbtIo::readTag(userData, NbtVariant::LittleEndian);
-        } else if (nbtSize > 0) {
-            item.mTag = NbtIo::readTag(userData, NbtVariant::LittleEndian);
-        }
-
-        uint32_t canPlaceLength = userData.getLInt();
-        item.mCanPlace.reserve(canPlaceLength);
-        for (uint32_t i = 0; i < canPlaceLength; i++) {
-            item.mCanPlace.push_back(userData.get(userData.getLShort()));
-        }
-
-        uint32_t canBreakLength = userData.getLInt();
-        item.mCanBreak.reserve(canBreakLength);
-        for (uint32_t i = 0; i < canBreakLength; i++) {
-            item.mCanBreak.push_back(userData.get(userData.getLShort()));
-        }
-
-        if (item.mDefinition != nullptr && item.mDefinition->getIdentifier() == BLOCKING_ID
-                && userData.getRemainingLength() >= 8) {
-            item.mBlockingTicks = userData.getLLong();
-        }
-
-        return item;
-    }
-
     void writeRequestActionData(BinaryStream &stream, const PacketCodecContext &context, const ItemStackRequestAction &action) {
         switch (action.mType) {
             case ItemStackRequestActionType::Take:
@@ -207,11 +100,11 @@ namespace {
                 stream.putLInt((uint32_t) action.mStackNetworkId);
                 break;
             case ItemStackRequestActionType::CraftRecipe:
-                stream.putVarInt(action.mRecipeNetworkId);
+                stream.putUnsignedVarInt((uint32_t) action.mRecipeNetworkId);
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
                 break;
             case ItemStackRequestActionType::CraftRecipeAuto:
-                stream.putVarInt(action.mRecipeNetworkId);
+                stream.putUnsignedVarInt((uint32_t) action.mRecipeNetworkId);
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
                 stream.putArrayLength(0);
                 break;
@@ -220,13 +113,13 @@ namespace {
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
                 break;
             case ItemStackRequestActionType::CraftRecipeOptional:
-                stream.putVarInt(action.mRecipeNetworkId);
+                stream.putUnsignedVarInt((uint32_t) action.mRecipeNetworkId);
                 stream.putLInt((uint32_t) action.mFilteredStringIndex);
                 break;
             case ItemStackRequestActionType::CraftRepairAndDisenchant:
-                stream.putVarInt(action.mRecipeNetworkId);
-                stream.putVarInt(action.mRepairCost);
+                stream.putLInt((uint32_t) action.mRecipeNetworkId);
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
+                stream.putVarInt(action.mRepairCost);
                 break;
             case ItemStackRequestActionType::CraftLoom:
                 stream.putString(action.mPatternId);
@@ -235,7 +128,7 @@ namespace {
             case ItemStackRequestActionType::CraftResultsDeprecated:
                 stream.putArrayLength((uint32_t) action.mResultItems.size());
                 for (const ItemStack &item: action.mResultItems) {
-                    writeItemStackRequestNetworkItemInstanceDescriptor(stream, context, item);
+                    ItemCodec::writeRequestItemDescriptor(stream, context, item);
                 }
                 stream.putByte((unsigned char) action.mTimesCrafted);
                 break;
@@ -284,11 +177,11 @@ namespace {
                 action.mStackNetworkId = (int32_t) stream.getLInt();
                 break;
             case ItemStackRequestActionType::CraftRecipe:
-                action.mRecipeNetworkId = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getUnsignedVarInt();
                 action.mNumberOfRequestedCrafts = stream.getByte();
                 break;
             case ItemStackRequestActionType::CraftRecipeAuto: {
-                action.mRecipeNetworkId = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getUnsignedVarInt();
                 action.mNumberOfRequestedCrafts = stream.getByte();
                 uint32_t arrayLength = stream.getArrayLength();
                 for (uint32_t i = 0; i < arrayLength; i++) {
@@ -301,13 +194,13 @@ namespace {
                 action.mNumberOfRequestedCrafts = stream.getByte();
                 break;
             case ItemStackRequestActionType::CraftRecipeOptional:
-                action.mRecipeNetworkId = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getUnsignedVarInt();
                 action.mFilteredStringIndex = (int32_t) stream.getLInt();
                 break;
             case ItemStackRequestActionType::CraftRepairAndDisenchant:
-                action.mRecipeNetworkId = stream.getVarInt();
-                action.mRepairCost = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getLInt();
                 action.mNumberOfRequestedCrafts = stream.getByte();
+                action.mRepairCost = stream.getVarInt();
                 break;
             case ItemStackRequestActionType::CraftLoom:
                 action.mPatternId = stream.getString();
@@ -317,7 +210,7 @@ namespace {
                 uint32_t count = stream.getArrayLength();
                 action.mResultItems.reserve(count);
                 for (uint32_t i = 0; i < count; i++) {
-                    action.mResultItems.push_back(readItemStackRequestNetworkItemInstanceDescriptor(stream, context));
+                    action.mResultItems.push_back(ItemCodec::readRequestItemDescriptor(stream, context));
                 }
                 action.mTimesCrafted = stream.getByte();
                 break;

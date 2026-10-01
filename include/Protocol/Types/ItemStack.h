@@ -24,4 +24,5 @@ public:
     int64_t mBlockingTicks = 0;
     bool mUsingNetId = false;
     int32_t mNetId = 0;
+    std::string mUserData;
 };

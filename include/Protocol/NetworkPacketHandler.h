@@ -231,6 +231,7 @@ class TickSyncPacket;
 class TickingAreasLoadStatusPacket;
 class ToastRequestPacket;
 class PlayerToggleCrafterSlotRequestPacket;
+class LecternUpdatePacket;
 class TransferPacket;
 class TrimDataPacket;
 class UpdateAbilitiesPacket;
@@ -707,6 +708,9 @@ public:
     virtual void handle(const NetworkIdentifier &, const ToastRequestPacket &) {}
 
     virtual void handle(const NetworkIdentifier &, const PlayerToggleCrafterSlotRequestPacket &) {}
+    virtual void handle(const NetworkIdentifier &, const LecternUpdatePacket &)
+    {
+    }
 
     virtual void handle(const NetworkIdentifier &, const TransferPacket &) {}
 

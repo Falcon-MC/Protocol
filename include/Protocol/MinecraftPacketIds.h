@@ -121,6 +121,7 @@ enum class MinecraftPacketIds : int {
     LevelSoundEvent = 123,
     LevelEventGeneric = 124,
     VideoStreamConnect = 125,
+    LecternUpdate = 125,
     ClientCacheStatus = 129,
     OnScreenTextureAnimation = 130,
     MapCreateLockedCopy = 131,

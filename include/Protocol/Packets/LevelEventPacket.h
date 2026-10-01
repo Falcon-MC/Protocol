@@ -8,6 +8,13 @@ public:
     static const MinecraftPacketIds ID = MinecraftPacketIds::LevelEvent;
 
     enum Event : int32_t {
+        SoundGhastFireball = 1008,
+        SoundItemFrameAddItem = 1040,
+        SoundItemFrameBreak = 1041,
+        SoundItemFramePlace = 1042,
+        SoundItemFrameRemoveItem = 1043,
+        SoundItemFrameRotateItem = 1044,
+        SoundTotemUsed = 1052,
         ParticlePunchBlock = 2014,
         BlockStartBreak = 3600,
         BlockStopBreak = 3601,

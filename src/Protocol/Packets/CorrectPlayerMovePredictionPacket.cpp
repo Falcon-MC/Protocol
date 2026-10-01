@@ -8,14 +8,10 @@ void CorrectPlayerMovePredictionPacket::write(BinaryStream &stream, const Packet
     stream.putByte((unsigned char) mPredictionType);
     stream.putVector3f(mPosition);
     stream.putVector3f(mDelta);
-
-    if (mPredictionType == PredictionType::Vehicle) {
-        stream.putVector2f(mVehicleRotation);
-        stream.putOptionalPresent(mHasVehicleAngularVelocity);
-        if (mHasVehicleAngularVelocity)
-            stream.putLFloat(mVehicleAngularVelocity);
-    }
-
+    stream.putVector2f(mVehicleRotation);
+    stream.putOptionalPresent(mHasVehicleAngularVelocity);
+    if (mHasVehicleAngularVelocity)
+        stream.putLFloat(mVehicleAngularVelocity);
     stream.putBool(mOnGround);
     stream.putUnsignedVarLong(mTick);
 }
@@ -24,14 +20,10 @@ void CorrectPlayerMovePredictionPacket::read(ReadOnlyBinaryStream &stream, const
     mPredictionType = (PredictionType) stream.getByte();
     mPosition = stream.getVector3f();
     mDelta = stream.getVector3f();
-
-    if (mPredictionType == PredictionType::Vehicle) {
-        mVehicleRotation = stream.getVector2f();
-        mHasVehicleAngularVelocity = stream.getOptionalPresent();
-        if (mHasVehicleAngularVelocity)
-            mVehicleAngularVelocity = stream.getLFloat();
-    }
-
+    mVehicleRotation = stream.getVector2f();
+    mHasVehicleAngularVelocity = stream.getOptionalPresent();
+    if (mHasVehicleAngularVelocity)
+        mVehicleAngularVelocity = stream.getLFloat();
     mOnGround = stream.getBool();
     mTick = stream.getUnsignedVarLong();
 }

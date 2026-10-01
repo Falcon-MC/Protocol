@@ -188,6 +188,9 @@ public:
     std::string mParentPreset;
 
     bool mHasPos = false;
+    bool mHasPosX = false;
+    bool mHasPosY = false;
+    bool mHasPosZ = false;
     Vector3f mPos;
 
     bool mHasPitch = false;

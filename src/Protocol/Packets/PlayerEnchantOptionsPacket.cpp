@@ -46,7 +46,7 @@ void PlayerEnchantOptionsPacket::write(BinaryStream &stream, const PacketCodecCo
         writeEnchantList(stream, option.mEnchants1);
         writeEnchantList(stream, option.mEnchants2);
         stream.putString(option.mEnchantName);
-        stream.putVarInt(option.mEnchantNetId);
+        stream.putUnsignedVarInt((uint32_t) option.mEnchantNetId);
     }
 }
 
@@ -62,7 +62,7 @@ void PlayerEnchantOptionsPacket::read(ReadOnlyBinaryStream &stream, const Packet
         option.mEnchants1 = readEnchantList(stream);
         option.mEnchants2 = readEnchantList(stream);
         option.mEnchantName = stream.getString();
-        option.mEnchantNetId = stream.getVarInt();
+        option.mEnchantNetId = (int32_t) stream.getUnsignedVarInt();
         mOptions.push_back(option);
     }
 }

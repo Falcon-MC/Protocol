@@ -1,6 +1,5 @@
 #include "Protocol/InventoryCodec.h"
 
-#include "Core/Utility/BinaryDataException.h"
 #include "Protocol/ItemCodec.h"
 
 namespace {
@@ -163,7 +162,8 @@ ItemStackRequestSlotData InventoryCodec::readStackRequestSlotInfo(ReadOnlyBinary
 
 namespace {
 
-    void writeRequestActionData(BinaryStream &stream, const ItemStackRequestAction &action) {
+    void writeRequestActionData(BinaryStream &stream, const PacketCodecContext &context,
+                                const ItemStackRequestAction &action) {
         stream.putByte((unsigned char) itemStackRequestActionJavaOrdinal(action.mType));
 
         switch (action.mType) {
@@ -205,7 +205,7 @@ namespace {
                 stream.putLInt((uint32_t) action.mStackNetworkId);
                 break;
             case ItemStackRequestActionType::CraftRecipe:
-                stream.putVarInt(action.mRecipeNetworkId);
+                stream.putUnsignedVarInt((uint32_t) action.mRecipeNetworkId);
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
                 break;
             case ItemStackRequestActionType::CraftCreative:
@@ -213,13 +213,13 @@ namespace {
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
                 break;
             case ItemStackRequestActionType::CraftRecipeOptional:
-                stream.putVarInt(action.mRecipeNetworkId);
+                stream.putUnsignedVarInt((uint32_t) action.mRecipeNetworkId);
                 stream.putLInt((uint32_t) action.mFilteredStringIndex);
                 break;
             case ItemStackRequestActionType::CraftRepairAndDisenchant:
-                stream.putVarInt(action.mRecipeNetworkId);
-                stream.putVarInt(action.mRepairCost);
+                stream.putLInt((uint32_t) action.mRecipeNetworkId);
                 stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
+                stream.putVarInt(action.mRepairCost);
                 break;
             case ItemStackRequestActionType::CraftLoom:
                 stream.putString(action.mPatternId);
@@ -228,12 +228,21 @@ namespace {
             case ItemStackRequestActionType::CraftNonImplemented:
                 break;
             case ItemStackRequestActionType::CraftRecipeAuto:
+                stream.putUnsignedVarInt((uint32_t) action.mRecipeNetworkId);
+                stream.putByte((unsigned char) action.mNumberOfRequestedCrafts);
+                stream.putArrayLength(0);
+                break;
             case ItemStackRequestActionType::CraftResultsDeprecated:
-                throw BinaryDataException("ItemStackRequestAction crafting-ingredient encoding is not supported yet");
+                stream.putArrayLength((uint32_t) action.mResultItems.size());
+                for (const ItemStack &item: action.mResultItems)
+                    ItemCodec::writeRequestItemDescriptor(stream, context, item);
+                stream.putByte((unsigned char) action.mTimesCrafted);
+                break;
         }
     }
 
-    ItemStackRequestAction readRequestActionData(ReadOnlyBinaryStream &stream, ItemStackRequestActionType type) {
+    ItemStackRequestAction readRequestActionData(ReadOnlyBinaryStream &stream, const PacketCodecContext &context,
+                                                 ItemStackRequestActionType type) {
         stream.getByte();
 
         ItemStackRequestAction action;
@@ -278,7 +287,7 @@ namespace {
                 action.mStackNetworkId = (int32_t) stream.getLInt();
                 break;
             case ItemStackRequestActionType::CraftRecipe:
-                action.mRecipeNetworkId = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getUnsignedVarInt();
                 action.mNumberOfRequestedCrafts = stream.getByte();
                 break;
             case ItemStackRequestActionType::CraftCreative:
@@ -286,13 +295,13 @@ namespace {
                 action.mNumberOfRequestedCrafts = stream.getByte();
                 break;
             case ItemStackRequestActionType::CraftRecipeOptional:
-                action.mRecipeNetworkId = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getUnsignedVarInt();
                 action.mFilteredStringIndex = (int32_t) stream.getLInt();
                 break;
             case ItemStackRequestActionType::CraftRepairAndDisenchant:
-                action.mRecipeNetworkId = stream.getVarInt();
-                action.mRepairCost = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getLInt();
                 action.mNumberOfRequestedCrafts = stream.getByte();
+                action.mRepairCost = stream.getVarInt();
                 break;
             case ItemStackRequestActionType::CraftLoom:
                 action.mPatternId = stream.getString();
@@ -301,7 +310,7 @@ namespace {
             case ItemStackRequestActionType::CraftNonImplemented:
                 break;
             case ItemStackRequestActionType::CraftRecipeAuto: {
-                action.mRecipeNetworkId = stream.getVarInt();
+                action.mRecipeNetworkId = (int32_t) stream.getUnsignedVarInt();
                 action.mNumberOfRequestedCrafts = stream.getByte();
 
                 const uint32_t ingredientCount = stream.getUnsignedVarInt();
@@ -310,8 +319,14 @@ namespace {
 
                 break;
             }
-            case ItemStackRequestActionType::CraftResultsDeprecated:
-                throw BinaryDataException("ItemStackRequestAction crafting-ingredient decoding is not supported yet");
+            case ItemStackRequestActionType::CraftResultsDeprecated: {
+                const uint32_t count = stream.getArrayLength();
+                action.mResultItems.reserve(count);
+                for (uint32_t i = 0; i < count; i++)
+                    action.mResultItems.push_back(ItemCodec::readRequestItemDescriptor(stream, context));
+                action.mTimesCrafted = stream.getByte();
+                break;
+            }
         }
 
         return action;
@@ -325,7 +340,7 @@ void InventoryCodec::writeItemStackRequest(BinaryStream &stream, const PacketCod
     stream.putArrayLength((uint32_t) request.mActions.size());
     for (const ItemStackRequestAction &action: request.mActions) {
         stream.putUnsignedVarInt((uint32_t) itemStackRequestActionTypeToId(action.mType));
-        writeRequestActionData(stream, action);
+        writeRequestActionData(stream, context, action);
     }
 
     stream.putArrayLength((uint32_t) request.mFilterStrings.size());
@@ -344,7 +359,7 @@ ItemStackRequest InventoryCodec::readItemStackRequest(ReadOnlyBinaryStream &stre
     request.mActions.reserve(actionCount);
     for (uint32_t i = 0; i < actionCount; i++) {
         ItemStackRequestActionType type = itemStackRequestActionTypeFromId((int32_t) stream.getUnsignedVarInt());
-        request.mActions.push_back(readRequestActionData(stream, type));
+        request.mActions.push_back(readRequestActionData(stream, context, type));
     }
 
     uint32_t filterStringCount = stream.getArrayLength();

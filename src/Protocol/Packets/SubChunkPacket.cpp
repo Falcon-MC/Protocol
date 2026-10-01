@@ -24,7 +24,22 @@ namespace {
         }
     }
 
-    std::string readHeightMap(ReadOnlyBinaryStream &stream) {
+    struct HeightMapLayout {
+        bool optionalFlag;
+        bool runs;
+    };
+
+    constexpr HeightMapLayout HEIGHT_MAP_LAYOUTS[] = {
+            {true, true},
+            {false, false},
+            {true, false},
+            {false, true},
+    };
+
+    std::string readHeightMapBody(ReadOnlyBinaryStream &stream, bool runs) {
+        if (!runs)
+            return stream.get(SubChunkData::HEIGHT_MAP_LENGTH);
+
         std::string data;
         data.reserve(SubChunkData::HEIGHT_MAP_LENGTH);
 
@@ -39,6 +54,13 @@ namespace {
         }
 
         return data;
+    }
+
+    std::string readHeightMap(ReadOnlyBinaryStream &stream, HeightMapDataType type, const HeightMapLayout &layout) {
+        const bool present = layout.optionalFlag ? stream.getOptionalPresent() : type == HeightMapDataType::HasData;
+        if (!present)
+            return {};
+        return readHeightMapBody(stream, layout.runs);
     }
 
     void writeSubChunk(BinaryStream &stream, const SubChunkData &subChunk) {
@@ -59,7 +81,7 @@ namespace {
             stream.putLLong(subChunk.mBlobId);
     }
 
-    SubChunkData readSubChunk(ReadOnlyBinaryStream &stream) {
+    SubChunkData readSubChunk(ReadOnlyBinaryStream &stream, const HeightMapLayout &layout) {
         SubChunkData subChunk;
 
         const int8_t offsetX = (int8_t) stream.getByte();
@@ -73,12 +95,10 @@ namespace {
             subChunk.mData = stream.getByteArray();
 
         subChunk.mHeightMapType = (HeightMapDataType) stream.getByte();
-        if (stream.getOptionalPresent())
-            subChunk.mHeightMapData = readHeightMap(stream);
+        subChunk.mHeightMapData = readHeightMap(stream, subChunk.mHeightMapType, layout);
 
         subChunk.mRenderHeightMapType = (HeightMapDataType) stream.getByte();
-        if (stream.getOptionalPresent())
-            subChunk.mRenderHeightMapData = readHeightMap(stream);
+        subChunk.mRenderHeightMapData = readHeightMap(stream, subChunk.mRenderHeightMapType, layout);
 
         subChunk.mHasBlobId = stream.getOptionalPresent();
         if (subChunk.mHasBlobId)
@@ -113,11 +133,24 @@ void SubChunkPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext
     mCenterPosition = Vector3i(centerX, centerY, centerZ);
 
     const uint32_t count = stream.getArrayLength();
-    mSubChunks.clear();
-    mSubChunks.reserve(count);
+    const size_t start = stream.getOffset();
 
-    for (uint32_t i = 0; i < count; i++)
-        mSubChunks.push_back(readSubChunk(stream));
+    for (size_t attempt = 0; attempt < std::size(HEIGHT_MAP_LAYOUTS); attempt++) {
+        stream.setOffset(start);
+        mSubChunks.clear();
+        mSubChunks.reserve(count);
+        try {
+            for (uint32_t i = 0; i < count; i++)
+                mSubChunks.push_back(readSubChunk(stream, HEIGHT_MAP_LAYOUTS[attempt]));
+            if (stream.feof())
+                return;
+        } catch (const BinaryDataException &) {
+            if (attempt + 1 == std::size(HEIGHT_MAP_LAYOUTS))
+                throw;
+        }
+    }
+
+    throw BinaryDataException("Sub chunk height maps do not match any known layout");
 }
 
 void SubChunkPacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {

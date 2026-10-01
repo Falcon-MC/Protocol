@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Utility/BinaryStream.h"
 #include "Core/Utility/UUID.h"
 
 #include <string>
@@ -19,4 +20,8 @@ public:
     std::string mScenarioId;
     bool mHasServerId = false;
     std::string mServerId;
+
+    void write(BinaryStream &stream) const;
+
+    void read(ReadOnlyBinaryStream &stream);
 };
