@@ -13,7 +13,7 @@ void PlaySoundPacket::write(BinaryStream &stream, const PacketCodecContext &cont
     stream.putLFloat(mVolume);
     stream.putLFloat(mPitch);
 
-    stream.putUnsignedVarInt((uint32_t) mLoopCount);
+    stream.putVarInt(mLoopCount);
 
     stream.putBool(mBypassListenerRangeCheck);
 
@@ -35,7 +35,7 @@ void PlaySoundPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContex
     mVolume = stream.getLFloat();
     mPitch = stream.getLFloat();
 
-    mLoopCount = (int32_t) stream.getUnsignedVarInt();
+    mLoopCount = stream.getVarInt();
 
     mBypassListenerRangeCheck = stream.getBool();
 
