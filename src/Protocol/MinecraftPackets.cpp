@@ -239,7 +239,7 @@
 #include "Protocol/Packets/UpdateSoftEnumPacket.h"
 #include "Protocol/Packets/UpdateSubChunkBlocksPacket.h"
 #include "Protocol/Packets/UpdateTradePacket.h"
-#include "Protocol/Packets/VideoStreamConnectPacket.h"
+#include "Protocol/Packets/LecternUpdatePacket.h"
 #include "Protocol/Packets/VoxelShapesPacket.h"
 
 #include <mutex>
@@ -512,7 +512,7 @@ void MinecraftPackets::_registerDefaultPackets() {
     registerPacket<UpdateSoftEnumPacket>();
     registerPacket<UpdateSubChunkBlocksPacket>();
     registerPacket<UpdateTradePacket>();
-    registerPacket<VideoStreamConnectPacket>();
+    registerPacket<LecternUpdatePacket>();
     registerPacket<VoxelShapesPacket>();
 }
 
