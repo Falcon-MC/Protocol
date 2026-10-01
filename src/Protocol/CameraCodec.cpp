@@ -249,16 +249,16 @@ void CameraCodec::writePreset(BinaryStream &stream, const CameraPreset &preset) 
     stream.putString(preset.mIdentifier);
     stream.putString(preset.mParentPreset);
 
-    stream.putOptionalPresent(preset.mHasPos);
-    if (preset.mHasPos) {
+    stream.putOptionalPresent(preset.mHasPos || preset.mHasPosX);
+    if (preset.mHasPos || preset.mHasPosX) {
         stream.putLFloat(preset.mPos.x);
     }
-    stream.putOptionalPresent(preset.mHasPos);
-    if (preset.mHasPos) {
+    stream.putOptionalPresent(preset.mHasPos || preset.mHasPosY);
+    if (preset.mHasPos || preset.mHasPosY) {
         stream.putLFloat(preset.mPos.y);
     }
-    stream.putOptionalPresent(preset.mHasPos);
-    if (preset.mHasPos) {
+    stream.putOptionalPresent(preset.mHasPos || preset.mHasPosZ);
+    if (preset.mHasPos || preset.mHasPosZ) {
         stream.putLFloat(preset.mPos.z);
     }
 
@@ -367,9 +367,10 @@ CameraPreset CameraCodec::readPreset(ReadOnlyBinaryStream &stream) {
     bool hasZ = stream.getOptionalPresent();
     float z = hasZ ? stream.getLFloat() : 0.0f;
     preset.mHasPos = hasX && hasY && hasZ;
-    if (preset.mHasPos) {
-        preset.mPos = Vector3f(x, y, z);
-    }
+    preset.mHasPosX = hasX;
+    preset.mHasPosY = hasY;
+    preset.mHasPosZ = hasZ;
+    preset.mPos = Vector3f(x, y, z);
 
     preset.mHasPitch = stream.getOptionalPresent();
     if (preset.mHasPitch) {
