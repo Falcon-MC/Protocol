@@ -25,4 +25,5 @@ public:
     bool mUsingNetId = false;
     int32_t mNetId = 0;
     std::string mUserData;
+    bool mDirectUserData = false;
 };
