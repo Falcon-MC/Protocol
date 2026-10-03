@@ -7,7 +7,7 @@ SetActorDataPacket::SetActorDataPacket() = default;
 
 void SetActorDataPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
     stream.putUnsignedVarLong((uint64_t) mRuntimeActorId);
-    EntityCodec::writeEntityData(stream, mMetadata);
+    EntityCodec::writeEntityData(stream, context, mMetadata);
     EntityCodec::writeEntityProperties(stream, mProperties);
     stream.putUnsignedVarLong((uint64_t) mTick);
 }

@@ -49,7 +49,8 @@ AttributeData EntityCodec::readAttribute(ReadOnlyBinaryStream &stream) {
     return attribute;
 }
 
-void EntityCodec::writeEntityData(BinaryStream &stream, const EntityDataMap &entityData) {
+void EntityCodec::writeEntityData(BinaryStream &stream, const PacketCodecContext &context,
+                                  const EntityDataMap &entityData) {
     stream.putUnsignedVarInt((uint32_t) entityData.mEntries.size());
 
     for (const EntityDataEntry &entry: entityData.mEntries) {
@@ -65,7 +66,7 @@ void EntityCodec::writeEntityData(BinaryStream &stream, const EntityDataMap &ent
                 stream.putLShort((uint16_t) entry.mShortValue);
                 break;
             case EntityDataFormat::Int:
-                stream.putVarInt(entry.mIntValue);
+                stream.putVarInt(entry.mIsBlock ? context.toNetworkBlockId(entry.mIntValue) : entry.mIntValue);
                 break;
             case EntityDataFormat::Float:
                 stream.putLFloat(entry.mFloatValue);

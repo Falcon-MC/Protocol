@@ -34,6 +34,12 @@ public:
     Vector3i mVector3iValue;
     int64_t mLongValue = 0;
     Vector3f mVector3fValue;
+
+    /**
+     * Set by the sender when mIntValue is a block network ID, so it is translated for clients of another version.
+     * It is not part of the packet.
+     */
+    bool mIsBlock = false;
 };
 
 class EntityDataMap {

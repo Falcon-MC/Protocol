@@ -2,6 +2,7 @@
 
 #include "Core/Utility/BinaryStream.h"
 #include "Core/Utility/ReadOnlyBinaryStream.h"
+#include "Protocol/PacketCodecContext.h"
 #include "Protocol/Types/AttributeData.h"
 #include "Protocol/Types/EntityDataMap.h"
 #include "Protocol/Types/EntityLinkData.h"
@@ -14,7 +15,8 @@ public:
 
     static AttributeData readAttribute(ReadOnlyBinaryStream &stream);
 
-    static void writeEntityData(BinaryStream &stream, const EntityDataMap &entityData);
+    static void writeEntityData(BinaryStream &stream, const PacketCodecContext &context,
+                                const EntityDataMap &entityData);
 
     static EntityDataMap readEntityData(ReadOnlyBinaryStream &stream);
 

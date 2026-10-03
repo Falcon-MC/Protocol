@@ -23,7 +23,7 @@ void AddActorPacket::write(BinaryStream &stream, const PacketCodecContext &conte
         stream.putLFloat(attribute.mMaximum);
     }
 
-    EntityCodec::writeEntityData(stream, mMetadata);
+    EntityCodec::writeEntityData(stream, context, mMetadata);
     EntityCodec::writeEntityProperties(stream, mProperties);
 
     stream.putArrayLength((uint32_t) mActorLinks.size());
