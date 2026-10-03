@@ -109,7 +109,8 @@ namespace {
 }
 
 void ItemCodec::writeItemInstance(BinaryStream &stream, const PacketCodecContext &context, const ItemStack &item) {
-    if (item.isAir()) {
+    const int32_t networkId = item.isAir() ? 0 : context.toNetworkItemId(item.mDefinition->getRuntimeId());
+    if (networkId == 0) {
         stream.putVarInt(0);
         stream.putLShort(0);
         stream.putUnsignedVarInt((uint32_t) item.mDamage);
@@ -118,7 +119,7 @@ void ItemCodec::writeItemInstance(BinaryStream &stream, const PacketCodecContext
         return;
     }
 
-    stream.putVarInt(item.mDefinition->getRuntimeId());
+    stream.putVarInt(networkId);
     stream.putLShort((uint16_t) item.mCount);
     stream.putUnsignedVarInt((uint32_t) item.mDamage);
     stream.putVarInt(item.mBlockDefinition == nullptr ? 0 : item.mBlockDefinition->getRuntimeId());
@@ -137,7 +138,7 @@ ItemStack ItemCodec::readItemInstance(ReadOnlyBinaryStream &stream, const Packet
     }
 
     ItemStack item;
-    item.mDefinition = context.getItemDefinitions().getDefinition(runtimeId);
+    item.mDefinition = context.getItemDefinitions().getDefinition(context.fromNetworkItemId(runtimeId));
     item.mCount = stream.getLShort();
     item.mDamage = (int) stream.getUnsignedVarInt();
 
@@ -189,7 +190,8 @@ ItemStack ItemCodec::readItemInstance(ReadOnlyBinaryStream &stream, const Packet
 }
 
 void ItemCodec::writeNetworkItemStackDescriptor(BinaryStream &stream, const PacketCodecContext &context, const ItemStack &item) {
-    if (item.isAir()) {
+    const int32_t networkId = item.isAir() ? 0 : context.toNetworkItemId(item.mDefinition->getRuntimeId());
+    if (networkId == 0) {
         stream.putLShort(0);
         stream.putLShort(0);
         stream.putUnsignedVarInt((uint32_t) item.mDamage);
@@ -199,7 +201,7 @@ void ItemCodec::writeNetworkItemStackDescriptor(BinaryStream &stream, const Pack
         return;
     }
 
-    stream.putLShort((uint16_t) item.mDefinition->getRuntimeId());
+    stream.putLShort((uint16_t) networkId);
     stream.putLShort((uint16_t) item.mCount);
     stream.putUnsignedVarInt((uint32_t) item.mDamage);
 
@@ -335,7 +337,7 @@ ItemStack ItemCodec::readNetworkItemStackDescriptor(ReadOnlyBinaryStream &stream
     }
 
     ItemStack item;
-    item.mDefinition = context.getItemDefinitions().getDefinition(runtimeId);
+    item.mDefinition = context.getItemDefinitions().getDefinition(context.fromNetworkItemId(runtimeId));
     item.mCount = stream.getLShort();
     item.mDamage = (int) stream.getUnsignedVarInt();
 

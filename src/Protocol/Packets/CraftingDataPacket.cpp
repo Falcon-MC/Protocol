@@ -77,8 +77,8 @@ namespace {
         return ingredient;
     }
 
-    void writeOutput(BinaryStream &stream, const RecipeOutputEntry &output) {
-        stream.putVarInt(output.mRuntimeId);
+    void writeOutput(BinaryStream &stream, const PacketCodecContext &context, const RecipeOutputEntry &output) {
+        stream.putVarInt(context.toNetworkItemId(output.mRuntimeId));
         stream.putLShort((uint16_t) output.mCount);
         stream.putUnsignedVarInt((uint32_t) output.mMeta);
         stream.putVarInt(output.mBlockRuntimeId);
@@ -155,7 +155,8 @@ namespace {
             recipe.mUnlockingIngredients.push_back(readIngredient(stream));
     }
 
-    void writeRecipe(BinaryStream &stream, const CraftingRecipeEntry &recipe, bool shaped) {
+    void writeRecipe(BinaryStream &stream, const PacketCodecContext &context, const CraftingRecipeEntry &recipe,
+                     bool shaped) {
         stream.putString(recipe.mRecipeId);
 
         if (shaped) {
@@ -169,7 +170,7 @@ namespace {
 
         stream.putUnsignedVarInt((uint32_t) recipe.mOutputs.size());
         for (const RecipeOutputEntry &output: recipe.mOutputs)
-            writeOutput(stream, output);
+            writeOutput(stream, context, output);
 
         stream.putUuid(recipe.mUuid);
         stream.putString(recipe.mBlockName);
@@ -211,10 +212,11 @@ namespace {
         return recipe;
     }
 
-    void writeRecipes(BinaryStream &stream, const std::vector<CraftingRecipeEntry> &recipes, bool shaped) {
+    void writeRecipes(BinaryStream &stream, const PacketCodecContext &context,
+                      const std::vector<CraftingRecipeEntry> &recipes, bool shaped) {
         stream.putUnsignedVarInt((uint32_t) recipes.size());
         for (const CraftingRecipeEntry &recipe: recipes)
-            writeRecipe(stream, recipe, shaped);
+            writeRecipe(stream, context, recipe, shaped);
     }
 
     std::vector<CraftingRecipeEntry> readRecipes(ReadOnlyBinaryStream &stream, bool shaped) {
@@ -226,7 +228,8 @@ namespace {
         return recipes;
     }
 
-    void writeSmithingRecipes(BinaryStream &stream, const std::vector<SmithingRecipeEntry> &recipes, bool transform) {
+    void writeSmithingRecipes(BinaryStream &stream, const PacketCodecContext &context,
+                              const std::vector<SmithingRecipeEntry> &recipes, bool transform) {
         stream.putUnsignedVarInt((uint32_t) recipes.size());
         for (const SmithingRecipeEntry &recipe: recipes) {
             stream.putString(recipe.mRecipeId);
@@ -234,7 +237,7 @@ namespace {
             writeIngredient(stream, recipe.mInput);
             writeIngredient(stream, recipe.mAddition);
             if (transform)
-                writeOutput(stream, recipe.mOutput);
+                writeOutput(stream, context, recipe.mOutput);
             stream.putString(recipe.mBlockName);
             stream.putUnsignedVarInt((uint32_t) recipe.mRecipeNetId);
         }
@@ -261,8 +264,8 @@ namespace {
 }
 
 void CraftingDataPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
-    writeRecipes(stream, mShapedRecipes, true);
-    writeRecipes(stream, mShapelessRecipes, false);
+    writeRecipes(stream, context, mShapedRecipes, true);
+    writeRecipes(stream, context, mShapelessRecipes, false);
 
     stream.putUnsignedVarInt((uint32_t) mMultiRecipes.size());
     for (const MultiRecipeEntry &recipe: mMultiRecipes) {
@@ -270,35 +273,35 @@ void CraftingDataPacket::write(BinaryStream &stream, const PacketCodecContext &c
         stream.putUnsignedVarInt((uint32_t) recipe.mRecipeNetId);
     }
 
-    writeRecipes(stream, mUserDataShapelessRecipes, false);
-    writeRecipes(stream, mShapelessChemistryRecipes, false);
-    writeRecipes(stream, mShapedChemistryRecipes, true);
-    writeSmithingRecipes(stream, mSmithingTransformRecipes, true);
-    writeSmithingRecipes(stream, mSmithingTrimRecipes, false);
+    writeRecipes(stream, context, mUserDataShapelessRecipes, false);
+    writeRecipes(stream, context, mShapelessChemistryRecipes, false);
+    writeRecipes(stream, context, mShapedChemistryRecipes, true);
+    writeSmithingRecipes(stream, context, mSmithingTransformRecipes, true);
+    writeSmithingRecipes(stream, context, mSmithingTrimRecipes, false);
 
     stream.putArrayLength((uint32_t) mPotionMixes.size());
     for (const PotionMixEntry &mix: mPotionMixes) {
-        stream.putVarInt(mix.mInputId);
+        stream.putVarInt(context.toNetworkItemId(mix.mInputId));
         stream.putVarInt(mix.mInputMeta);
-        stream.putVarInt(mix.mReagentId);
+        stream.putVarInt(context.toNetworkItemId(mix.mReagentId));
         stream.putVarInt(mix.mReagentMeta);
-        stream.putVarInt(mix.mOutputId);
+        stream.putVarInt(context.toNetworkItemId(mix.mOutputId));
         stream.putVarInt(mix.mOutputMeta);
     }
 
     stream.putArrayLength((uint32_t) mPotionContainerMixes.size());
     for (const PotionContainerMixEntry &mix: mPotionContainerMixes) {
-        stream.putVarInt(mix.mInputId);
-        stream.putVarInt(mix.mReagentId);
-        stream.putVarInt(mix.mOutputId);
+        stream.putVarInt(context.toNetworkItemId(mix.mInputId));
+        stream.putVarInt(context.toNetworkItemId(mix.mReagentId));
+        stream.putVarInt(context.toNetworkItemId(mix.mOutputId));
     }
 
     stream.putArrayLength((uint32_t) mMaterialReducers.size());
     for (const MaterialReducerEntry &reducer: mMaterialReducers) {
-        stream.putVarInt((reducer.mInputId << 16) | (reducer.mInputMeta & 0x7fff));
+        stream.putVarInt((context.toNetworkItemId(reducer.mInputId) << 16) | (reducer.mInputMeta & 0x7fff));
         stream.putArrayLength((uint32_t) reducer.mOutputs.size());
         for (const MaterialReducerOutputEntry &output: reducer.mOutputs) {
-            stream.putVarInt(output.mItemId);
+            stream.putVarInt(context.toNetworkItemId(output.mItemId));
             stream.putVarInt(output.mCount);
         }
     }

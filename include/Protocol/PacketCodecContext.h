@@ -5,6 +5,7 @@
 #include "Protocol/Codec/ProtocolCapabilities.h"
 #include "Protocol/Types/BlockDefinitionRegistry.h"
 #include "Protocol/Types/ItemDefinitionRegistry.h"
+#include "Protocol/Types/ItemNetworkIdMap.h"
 
 #include <memory>
 
@@ -41,8 +42,18 @@ public:
 
     bool getPresence(ReadOnlyBinaryStream &stream) const;
 
+    /**
+     * Makes this context translate item network IDs for a client of another version.
+     */
+    void setItemNetworkIds(std::shared_ptr<const ItemNetworkIdMap> itemNetworkIds);
+
+    int32_t toNetworkItemId(int32_t itemId) const;
+
+    int32_t fromNetworkItemId(int32_t networkId) const;
+
 private:
     const BlockDefinitionRegistry &mBlockDefinitions;
     const ItemDefinitionRegistry &mItemDefinitions;
     std::shared_ptr<const ProtocolCodec> mCodec;
+    std::shared_ptr<const ItemNetworkIdMap> mItemNetworkIds;
 };

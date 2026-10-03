@@ -27,6 +27,18 @@ void PacketCodecContext::putPresence(BinaryStream &stream, bool present) const {
     stream.putBool(present);
 }
 
+void PacketCodecContext::setItemNetworkIds(std::shared_ptr<const ItemNetworkIdMap> itemNetworkIds) {
+    mItemNetworkIds = std::move(itemNetworkIds);
+}
+
+int32_t PacketCodecContext::toNetworkItemId(int32_t itemId) const {
+    return mItemNetworkIds == nullptr ? itemId : mItemNetworkIds->toClient(itemId);
+}
+
+int32_t PacketCodecContext::fromNetworkItemId(int32_t networkId) const {
+    return mItemNetworkIds == nullptr ? networkId : mItemNetworkIds->toCurrent(networkId);
+}
+
 bool PacketCodecContext::getPresence(ReadOnlyBinaryStream &stream) const {
     if (getCapabilities().mDoubledPresence && !stream.getBool())
         return false;
