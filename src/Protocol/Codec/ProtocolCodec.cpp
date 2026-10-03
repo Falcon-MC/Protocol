@@ -14,6 +14,10 @@ void ProtocolCodec::registerPacket(MinecraftPacketIds id, PacketFactory factory,
     mEntries[(int) id] = Entry{std::move(factory), std::move(serializer)};
 }
 
+void ProtocolCodec::removePacket(MinecraftPacketIds id) {
+    mEntries.erase((int) id);
+}
+
 bool ProtocolCodec::supports(MinecraftPacketIds id) const {
     return mEntries.find((int) id) != mEntries.end();
 }

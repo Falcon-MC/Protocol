@@ -7,6 +7,8 @@ BossEventPacket::BossEventPacket()
 
 void BossEventPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
     stream.putVarLong(mBossUniqueActorId);
+    if (context.getCapabilities().mBossEventPlayerId)
+        stream.putVarLong(0);
     stream.putByte((unsigned char) mAction);
     stream.putString(mTitle);
     stream.putString(mFilteredTitle);
@@ -17,6 +19,8 @@ void BossEventPacket::write(BinaryStream &stream, const PacketCodecContext &cont
 
 void BossEventPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
     mBossUniqueActorId = stream.getVarLong();
+    if (context.getCapabilities().mBossEventPlayerId)
+        stream.getVarLong();
     mAction = (Action) stream.getByte();
     mTitle = stream.getString();
     mFilteredTitle = stream.getString();

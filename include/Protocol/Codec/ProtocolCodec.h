@@ -33,6 +33,11 @@ public:
         }, std::move(serializer));
     }
 
+    /**
+     * Drops a packet this version does not have, so nothing of that type is sent to its clients.
+     */
+    void removePacket(MinecraftPacketIds id);
+
     const ProtocolCapabilities &getCapabilities() const { return mCapabilities; }
 
     int getProtocolVersion() const { return mCapabilities.mProtocolVersion; }

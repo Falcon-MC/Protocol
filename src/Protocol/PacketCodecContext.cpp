@@ -16,3 +16,19 @@ PacketCodecContext::PacketCodecContext(const BlockDefinitionRegistry &blockDefin
 const ProtocolCodec &PacketCodecContext::getCodec() const {
     return mCodec != nullptr ? *mCodec : ProtocolCodecRegistry::instance().getDefault();
 }
+
+const ProtocolCapabilities &PacketCodecContext::getCapabilities() const {
+    return getCodec().getCapabilities();
+}
+
+void PacketCodecContext::putPresence(BinaryStream &stream, bool present) const {
+    if (getCapabilities().mDoubledPresence)
+        stream.putBool(true);
+    stream.putBool(present);
+}
+
+bool PacketCodecContext::getPresence(ReadOnlyBinaryStream &stream) const {
+    if (getCapabilities().mDoubledPresence && !stream.getBool())
+        return false;
+    return stream.getBool();
+}

@@ -15,11 +15,16 @@ void PlaySoundPacket::write(BinaryStream &stream, const PacketCodecContext &cont
 
     stream.putVarInt(mLoopCount);
 
-    stream.putBool(mBypassListenerRangeCheck);
+    const bool rangeAndPosition = context.getCapabilities().mPlaySoundRangeAndPosition;
+    if (rangeAndPosition)
+        stream.putBool(mBypassListenerRangeCheck);
 
     stream.putOptionalPresent(mHasServerSoundHandle);
     if (mHasServerSoundHandle)
         stream.putLLong((uint64_t) mServerSoundHandle);
+
+    if (!rangeAndPosition)
+        return;
 
     stream.putOptionalPresent(mHasPlaybackPosition);
     if (mHasPlaybackPosition)
@@ -37,11 +42,16 @@ void PlaySoundPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContex
 
     mLoopCount = stream.getVarInt();
 
-    mBypassListenerRangeCheck = stream.getBool();
+    const bool rangeAndPosition = context.getCapabilities().mPlaySoundRangeAndPosition;
+    if (rangeAndPosition)
+        mBypassListenerRangeCheck = stream.getBool();
 
     mHasServerSoundHandle = stream.getOptionalPresent();
     if (mHasServerSoundHandle)
         mServerSoundHandle = (int64_t) stream.getLLong();
+
+    if (!rangeAndPosition)
+        return;
 
     mHasPlaybackPosition = stream.getOptionalPresent();
     if (mHasPlaybackPosition)

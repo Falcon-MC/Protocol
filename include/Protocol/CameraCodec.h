@@ -2,6 +2,7 @@
 
 #include "Core/Utility/BinaryStream.h"
 #include "Core/Utility/ReadOnlyBinaryStream.h"
+#include "Protocol/PacketCodecContext.h"
 #include "Protocol/Types/CameraTypes.h"
 
 class CameraCodec {
@@ -26,7 +27,7 @@ public:
 
     static CameraAimAssistPreset readAimAssistPreset(ReadOnlyBinaryStream &stream);
 
-    static void writePreset(BinaryStream &stream, const CameraPreset &preset);
+    static void writePreset(BinaryStream &stream, const PacketCodecContext &context, const CameraPreset &preset);
 
-    static CameraPreset readPreset(ReadOnlyBinaryStream &stream);
+    static CameraPreset readPreset(ReadOnlyBinaryStream &stream, const PacketCodecContext &context);
 };

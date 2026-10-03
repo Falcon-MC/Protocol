@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Core/Utility/BinaryStream.h"
+#include "Core/Utility/ReadOnlyBinaryStream.h"
+#include "Protocol/Codec/ProtocolCapabilities.h"
 #include "Protocol/Types/BlockDefinitionRegistry.h"
 #include "Protocol/Types/ItemDefinitionRegistry.h"
 
@@ -28,6 +31,15 @@ public:
     const ItemDefinitionRegistry &getItemDefinitions() const { return mItemDefinitions; }
 
     const ProtocolCodec &getCodec() const;
+
+    const ProtocolCapabilities &getCapabilities() const;
+
+    /**
+     * Writes whether an optional field follows, in the form this version expects.
+     */
+    void putPresence(BinaryStream &stream, bool present) const;
+
+    bool getPresence(ReadOnlyBinaryStream &stream) const;
 
 private:
     const BlockDefinitionRegistry &mBlockDefinitions;

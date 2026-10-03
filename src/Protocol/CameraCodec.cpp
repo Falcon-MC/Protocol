@@ -245,7 +245,7 @@ CameraAimAssistPreset CameraCodec::readAimAssistPreset(ReadOnlyBinaryStream &str
     return preset;
 }
 
-void CameraCodec::writePreset(BinaryStream &stream, const CameraPreset &preset) {
+void CameraCodec::writePreset(BinaryStream &stream, const PacketCodecContext &context, const CameraPreset &preset) {
     stream.putString(preset.mIdentifier);
     stream.putString(preset.mParentPreset);
 
@@ -347,6 +347,9 @@ void CameraCodec::writePreset(BinaryStream &stream, const CameraPreset &preset) 
         stream.putByte((unsigned char) preset.mControlScheme);
     }
 
+    if (!context.getCapabilities().mCameraStartingRotation)
+        return;
+
     stream.putBool(preset.mApplyInheritedStartingRotation);
 
     stream.putOptionalPresent(preset.mHasStartingRotation);
@@ -355,7 +358,7 @@ void CameraCodec::writePreset(BinaryStream &stream, const CameraPreset &preset) 
     }
 }
 
-CameraPreset CameraCodec::readPreset(ReadOnlyBinaryStream &stream) {
+CameraPreset CameraCodec::readPreset(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
     CameraPreset preset;
     preset.mIdentifier = stream.getString();
     preset.mParentPreset = stream.getString();
@@ -456,6 +459,9 @@ CameraPreset CameraCodec::readPreset(ReadOnlyBinaryStream &stream) {
     if (preset.mHasControlScheme) {
         preset.mControlScheme = (ControlScheme) stream.getByte();
     }
+
+    if (!context.getCapabilities().mCameraStartingRotation)
+        return preset;
 
     preset.mApplyInheritedStartingRotation = stream.getBool();
 

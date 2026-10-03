@@ -1,5 +1,6 @@
 #include "Protocol/Codec/ProtocolCodecRegistry.h"
 
+#include "Protocol/Codec/Codec2169.h"
 #include "Protocol/Codec/Codec2193.h"
 
 #include <algorithm>
@@ -11,6 +12,9 @@ ProtocolCodecRegistry &ProtocolCodecRegistry::instance() {
 
 ProtocolCodecRegistry::ProtocolCodecRegistry() : mDefault(Codec2193::create()) {
     mCodecs[mDefault->getProtocolVersion()] = mDefault;
+
+    const std::shared_ptr<const ProtocolCodec> codec2169 = Codec2169::create();
+    mCodecs[codec2169->getProtocolVersion()] = codec2169;
 }
 
 void ProtocolCodecRegistry::registerCodec(std::shared_ptr<const ProtocolCodec> codec) {

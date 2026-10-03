@@ -157,7 +157,8 @@ namespace {
         return value;
     }
 
-    void writeEnvironmentAttribute(BinaryStream &stream, const EnvironmentAttributeData &attribute) {
+    void writeEnvironmentAttribute(BinaryStream &stream, const EnvironmentAttributeData &attribute,
+                                   bool noiseAlignment) {
         stream.putString(attribute.mAttributeName);
         stream.putOptionalPresent(attribute.mHasFrom);
         if (attribute.mHasFrom) {
@@ -173,11 +174,13 @@ namespace {
         stream.putString(CAMERA_EASE_NAMES[(size_t) attribute.mEasing]);
         stream.putLInt((uint32_t) attribute.mLocalTransitionTicks);
         stream.putBool(attribute.mNoiseTransition);
+        if (!noiseAlignment)
+            return;
         stream.putByte((unsigned char) attribute.mNoiseAlignment.mType);
         stream.putUnsignedVarInt((uint32_t) attribute.mNoiseAlignment.mValue);
     }
 
-    EnvironmentAttributeData readEnvironmentAttribute(ReadOnlyBinaryStream &stream) {
+    EnvironmentAttributeData readEnvironmentAttribute(ReadOnlyBinaryStream &stream, bool noiseAlignment) {
         EnvironmentAttributeData attribute;
         attribute.mAttributeName = stream.getString();
         attribute.mHasFrom = stream.getOptionalPresent();
@@ -194,6 +197,8 @@ namespace {
         attribute.mEasing = (CameraEase) indexOf(stream.getString(), CAMERA_EASE_NAMES.data(), CAMERA_EASE_NAMES.size());
         attribute.mLocalTransitionTicks = (int32_t) stream.getLInt();
         attribute.mNoiseTransition = stream.getBool();
+        if (!noiseAlignment)
+            return attribute;
         attribute.mNoiseAlignment.mType = (NoiseAlignmentType) stream.getByte();
         attribute.mNoiseAlignment.mValue = (int32_t) stream.getUnsignedVarInt();
         return attribute;
@@ -215,7 +220,7 @@ void ClientboundAttributeLayerSyncPacket::write(BinaryStream &stream, const Pack
                 writeSettings(stream, layer.mSettings);
                 stream.putArrayLength((uint32_t) layer.mAttributes.size());
                 for (const EnvironmentAttributeData &attribute: layer.mAttributes) {
-                    writeEnvironmentAttribute(stream, attribute);
+                    writeEnvironmentAttribute(stream, attribute, context.getCapabilities().mAttributeNoiseAlignment);
                 }
             }
             break;
@@ -229,7 +234,7 @@ void ClientboundAttributeLayerSyncPacket::write(BinaryStream &stream, const Pack
             stream.putVarInt(mData.mDimension);
             stream.putArrayLength((uint32_t) mData.mAttributes.size());
             for (const EnvironmentAttributeData &attribute: mData.mAttributes) {
-                writeEnvironmentAttribute(stream, attribute);
+                writeEnvironmentAttribute(stream, attribute, context.getCapabilities().mAttributeNoiseAlignment);
             }
             break;
         case AttributeLayerSyncPayloadType::RemoveEnvironmentAttributes:
@@ -258,7 +263,8 @@ void ClientboundAttributeLayerSyncPacket::read(ReadOnlyBinaryStream &stream, con
                 uint32_t attributeCount = stream.getArrayLength();
                 layer.mAttributes.reserve(attributeCount);
                 for (uint32_t j = 0; j < attributeCount; j++) {
-                    layer.mAttributes.push_back(readEnvironmentAttribute(stream));
+                    layer.mAttributes.push_back(
+                            readEnvironmentAttribute(stream, context.getCapabilities().mAttributeNoiseAlignment));
                 }
                 mData.mLayers.push_back(std::move(layer));
             }
@@ -275,7 +281,8 @@ void ClientboundAttributeLayerSyncPacket::read(ReadOnlyBinaryStream &stream, con
             uint32_t attributeCount = stream.getArrayLength();
             mData.mAttributes.reserve(attributeCount);
             for (uint32_t i = 0; i < attributeCount; i++) {
-                mData.mAttributes.push_back(readEnvironmentAttribute(stream));
+                mData.mAttributes.push_back(
+                        readEnvironmentAttribute(stream, context.getCapabilities().mAttributeNoiseAlignment));
             }
             break;
         }

@@ -8,7 +8,7 @@ CameraPresetsPacket::CameraPresetsPacket() = default;
 void CameraPresetsPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
     stream.putArrayLength((uint32_t) mPresets.size());
     for (const CameraPreset &preset: mPresets) {
-        CameraCodec::writePreset(stream, preset);
+        CameraCodec::writePreset(stream, context, preset);
     }
 }
 
@@ -16,7 +16,7 @@ void CameraPresetsPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecCo
     uint32_t length = stream.getArrayLength();
     mPresets.reserve(length);
     for (uint32_t i = 0; i < length; i++) {
-        mPresets.push_back(CameraCodec::readPreset(stream));
+        mPresets.push_back(CameraCodec::readPreset(stream, context));
     }
 }
 

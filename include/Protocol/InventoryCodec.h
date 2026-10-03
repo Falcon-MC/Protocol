@@ -17,9 +17,10 @@ public:
 
     static FullContainerName readFullContainerName(ReadOnlyBinaryStream &stream);
 
-    static void writeInventorySource(BinaryStream &stream, const InventorySource &source);
+    static void writeInventorySource(BinaryStream &stream, const PacketCodecContext &context,
+                                     const InventorySource &source);
 
-    static InventorySource readInventorySource(ReadOnlyBinaryStream &stream);
+    static InventorySource readInventorySource(ReadOnlyBinaryStream &stream, const PacketCodecContext &context);
 
     static void writeInventoryActions(BinaryStream &stream, const PacketCodecContext &context,
                                        const std::vector<InventoryActionData> &actions);

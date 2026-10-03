@@ -5,7 +5,7 @@
 namespace {
 
     // The height map is a fixed size grid, so a partially filled buffer would desync the stream
-    void writeHeightMap(BinaryStream &stream, HeightMapDataType type, const std::string &data) {
+    void writeHeightMap(BinaryStream &stream, HeightMapDataType type, const std::string &data, bool rows) {
         stream.putByte((unsigned char) type);
         stream.putOptionalPresent(!data.empty());
 
@@ -15,6 +15,11 @@ namespace {
         if (data.size() != SubChunkData::HEIGHT_MAP_LENGTH) {
             throw BinaryDataException("Height map must be exactly " +
                                       std::to_string(SubChunkData::HEIGHT_MAP_LENGTH) + " bytes");
+        }
+
+        if (!rows) {
+            stream.put(data.data(), SubChunkData::HEIGHT_MAP_LENGTH);
+            return;
         }
 
         for (size_t offset = 0; offset < SubChunkData::HEIGHT_MAP_LENGTH;
@@ -63,7 +68,7 @@ namespace {
         return readHeightMapBody(stream, layout.runs);
     }
 
-    void writeSubChunk(BinaryStream &stream, const SubChunkData &subChunk) {
+    void writeSubChunk(BinaryStream &stream, const SubChunkData &subChunk, bool heightMapRows) {
         stream.putByte((unsigned char) (int8_t) subChunk.mPosition.x);
         stream.putByte((unsigned char) (int8_t) subChunk.mPosition.y);
         stream.putByte((unsigned char) (int8_t) subChunk.mPosition.z);
@@ -73,8 +78,8 @@ namespace {
         if (subChunk.mHasData)
             stream.putByteArray(subChunk.mData);
 
-        writeHeightMap(stream, subChunk.mHeightMapType, subChunk.mHeightMapData);
-        writeHeightMap(stream, subChunk.mRenderHeightMapType, subChunk.mRenderHeightMapData);
+        writeHeightMap(stream, subChunk.mHeightMapType, subChunk.mHeightMapData, heightMapRows);
+        writeHeightMap(stream, subChunk.mRenderHeightMapType, subChunk.mRenderHeightMapData, heightMapRows);
 
         stream.putOptionalPresent(subChunk.mHasBlobId);
         if (subChunk.mHasBlobId)
@@ -121,7 +126,7 @@ void SubChunkPacket::write(BinaryStream &stream, const PacketCodecContext &conte
 
     stream.putArrayLength((uint32_t) mSubChunks.size());
     for (const SubChunkData &subChunk: mSubChunks)
-        writeSubChunk(stream, subChunk);
+        writeSubChunk(stream, subChunk, context.getCapabilities().mSubChunkHeightMapRows);
 }
 
 void SubChunkPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
