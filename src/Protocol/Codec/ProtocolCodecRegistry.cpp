@@ -13,8 +13,8 @@ ProtocolCodecRegistry &ProtocolCodecRegistry::instance() {
 ProtocolCodecRegistry::ProtocolCodecRegistry() : mDefault(Codec2193::create()) {
     mCodecs[mDefault->getProtocolVersion()] = mDefault;
 
-    const std::shared_ptr<const ProtocolCodec> codec2169 = Codec2169::create();
-    mCodecs[codec2169->getProtocolVersion()] = codec2169;
+    for (const std::shared_ptr<const ProtocolCodec> &codec: {Codec2169::create(), Codec2168::create()})
+        mCodecs[codec->getProtocolVersion()] = codec;
 }
 
 void ProtocolCodecRegistry::registerCodec(std::shared_ptr<const ProtocolCodec> codec) {

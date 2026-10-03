@@ -13,3 +13,12 @@ namespace Codec2169 {
     std::shared_ptr<const ProtocolCodec> create();
 
 }
+
+namespace Codec2168 {
+
+    /**
+     * Protocol 2168, Minecraft 1.26.40: the same packet formats as 2169.
+     */
+    std::shared_ptr<const ProtocolCodec> create();
+
+}

@@ -2,11 +2,11 @@
 
 #include "Protocol/MinecraftPackets.h"
 
-namespace Codec2169 {
+namespace {
 
-    std::shared_ptr<const ProtocolCodec> create() {
+    std::shared_ptr<const ProtocolCodec> createBefore2193(int protocolVersion) {
         ProtocolCapabilities capabilities;
-        capabilities.mProtocolVersion = 2169;
+        capabilities.mProtocolVersion = protocolVersion;
         capabilities.mDoubledPresence = true;
         capabilities.mBossEventPlayerId = true;
         capabilities.mItemUseHand = false;
@@ -22,6 +22,22 @@ namespace Codec2169 {
         codec->removePacket(MinecraftPacketIds::SetPlayerFurnaceOptions);
         codec->removePacket(MinecraftPacketIds::RecordStarted);
         return codec;
+    }
+
+}
+
+namespace Codec2169 {
+
+    std::shared_ptr<const ProtocolCodec> create() {
+        return createBefore2193(2169);
+    }
+
+}
+
+namespace Codec2168 {
+
+    std::shared_ptr<const ProtocolCodec> create() {
+        return createBefore2193(2168);
     }
 
 }
