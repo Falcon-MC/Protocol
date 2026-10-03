@@ -48,7 +48,8 @@ void StartGamePacket::write(BinaryStream &stream, const PacketCodecContext &cont
     stream.putVarInt((int32_t) mEditorWorldType);
     stream.putBool(mCreatedInEditor);
     stream.putBool(mExportedFromEditor);
-    stream.putByte((unsigned char) mEditorLevelMigrationVersion);
+    if (context.getCapabilities().mStartGameEditorMigration)
+        stream.putByte((unsigned char) mEditorLevelMigrationVersion);
     stream.putVarInt(mDayCycleStopTime);
     stream.putUnsignedVarInt(mEduEditionOffers);
     stream.putBool(mEduFeaturesEnabled);
@@ -159,7 +160,8 @@ void StartGamePacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContex
     mEditorWorldType = (EditorWorldType) stream.getVarInt();
     mCreatedInEditor = stream.getBool();
     mExportedFromEditor = stream.getBool();
-    mEditorLevelMigrationVersion = (EditorLevelMigrationVersion) (int8_t) stream.getByte();
+    if (context.getCapabilities().mStartGameEditorMigration)
+        mEditorLevelMigrationVersion = (EditorLevelMigrationVersion) (int8_t) stream.getByte();
     mDayCycleStopTime = stream.getVarInt();
     mEduEditionOffers = stream.getUnsignedVarInt();
     mEduFeaturesEnabled = stream.getBool();

@@ -238,7 +238,8 @@ void ItemStackRequestPacket::write(BinaryStream &stream, const PacketCodecContex
 
         stream.putArrayLength((uint32_t) request.mActions.size());
         for (const ItemStackRequestAction &action: request.mActions) {
-            const int32_t typeId = itemStackRequestActionTypeToId(action.mType);
+            const int32_t typeId = itemStackRequestActionIdForVersion(itemStackRequestActionTypeToId(action.mType),
+                                                                      context.getCapabilities().mCraftReservedAction);
             stream.putUnsignedVarInt((uint32_t) typeId);
             stream.putByte((unsigned char) itemStackRequestActionTypeToLegacyId(typeId));
             writeRequestActionData(stream, context, action);
@@ -263,7 +264,8 @@ void ItemStackRequestPacket::read(ReadOnlyBinaryStream &stream, const PacketCode
         uint32_t actionCount = stream.getArrayLength();
         request.mActions.reserve(actionCount);
         for (uint32_t j = 0; j < actionCount; j++) {
-            ItemStackRequestActionType type = itemStackRequestActionTypeFromId((int32_t) stream.getUnsignedVarInt());
+            ItemStackRequestActionType type = itemStackRequestActionTypeFromId(itemStackRequestActionIdFromVersion(
+                    (int32_t) stream.getUnsignedVarInt(), context.getCapabilities().mCraftReservedAction));
             stream.getByte();
             request.mActions.push_back(readRequestActionData(stream, context, type));
         }

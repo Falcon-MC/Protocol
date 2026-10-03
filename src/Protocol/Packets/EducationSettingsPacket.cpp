@@ -12,10 +12,17 @@ void EducationSettingsPacket::write(BinaryStream &stream, const PacketCodecConte
     stream.putString(mPostProcessFilter);
     stream.putString(mScreenshotBorderPath);
 
-    stream.putOptionalPresent(mHasAgentCapabilities);
-    if (mHasAgentCapabilities) {
-        stream.putOptionalPresent(mHasCanModifyBlocks);
-        if (mHasCanModifyBlocks)
+    if (context.getCapabilities().mEducationAgentCapabilities) {
+        stream.putOptionalPresent(mHasAgentCapabilities);
+        if (mHasAgentCapabilities) {
+            stream.putOptionalPresent(mHasCanModifyBlocks);
+            if (mHasCanModifyBlocks)
+                stream.putBool(mCanModifyBlocks);
+        }
+    } else {
+        const bool canModifyBlocks = mHasAgentCapabilities && mHasCanModifyBlocks;
+        stream.putOptionalPresent(canModifyBlocks);
+        if (canModifyBlocks)
             stream.putBool(mCanModifyBlocks);
     }
 
@@ -40,7 +47,11 @@ void EducationSettingsPacket::read(ReadOnlyBinaryStream &stream, const PacketCod
 
     mHasAgentCapabilities = stream.getOptionalPresent();
     mHasCanModifyBlocks = false;
-    if (mHasAgentCapabilities) {
+    if (!context.getCapabilities().mEducationAgentCapabilities) {
+        mHasCanModifyBlocks = mHasAgentCapabilities;
+        if (mHasCanModifyBlocks)
+            mCanModifyBlocks = stream.getBool();
+    } else if (mHasAgentCapabilities) {
         mHasCanModifyBlocks = stream.getOptionalPresent();
         if (mHasCanModifyBlocks)
             mCanModifyBlocks = stream.getBool();

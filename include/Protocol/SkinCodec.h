@@ -6,9 +6,12 @@
 
 class SkinCodec {
 public:
-    static void writeSkin(BinaryStream &stream, const SerializedSkin &skin);
+    /**
+     * Older versions carry the PlayFab ID inside the skin, right after the skin ID; pass it for them.
+     */
+    static void writeSkin(BinaryStream &stream, const SerializedSkin &skin, const std::string *playFabId = nullptr);
 
-    static SerializedSkin readSkin(ReadOnlyBinaryStream &stream);
+    static SerializedSkin readSkin(ReadOnlyBinaryStream &stream, std::string *outPlayFabId = nullptr);
 
 private:
     static void writeImage(BinaryStream &stream, const SkinImageData &image);

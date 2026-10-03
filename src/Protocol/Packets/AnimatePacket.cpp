@@ -49,6 +49,9 @@ void AnimatePacket::write(BinaryStream &stream, const PacketCodecContext &contex
     if (!mSwingSource.empty())
         stream.putString(mSwingSource);
 
+    if (!context.getCapabilities().mAnimateHand)
+        return;
+
     stream.putOptionalPresent(mHand.has_value());
     if (mHand.has_value())
         stream.putByte(*mHand);
@@ -64,7 +67,7 @@ void AnimatePacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext 
         mSwingSource = stream.getString();
 
     mHand.reset();
-    if (stream.getOptionalPresent())
+    if (context.getCapabilities().mAnimateHand && stream.getOptionalPresent())
         mHand = stream.getByte();
 }
 

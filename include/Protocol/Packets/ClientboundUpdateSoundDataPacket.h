@@ -29,4 +29,12 @@ public:
     SetPitchSoundData mPitch;
     FadeSoundData mFade;
     SeekToSoundData mSeekTo;
+
+private:
+    /**
+     * Versions before the update type sent every update one after the other.
+     */
+    void writeEveryUpdate(BinaryStream &stream) const;
+
+    void readEveryUpdate(ReadOnlyBinaryStream &stream);
 };

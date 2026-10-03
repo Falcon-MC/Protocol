@@ -5,6 +5,7 @@
 ServerboundDiagnosticsPacket::ServerboundDiagnosticsPacket() = default;
 
 void ServerboundDiagnosticsPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
+    const ProtocolCapabilities &capabilities = context.getCapabilities();
     stream.putLFloat(mAvgFps);
     stream.putLFloat(mAvgServerSimTickTimeMs);
     stream.putLFloat(mAvgClientSimTickTimeMs);
@@ -27,6 +28,13 @@ void ServerboundDiagnosticsPacket::write(BinaryStream &stream, const PacketCodec
         stream.putString(info.mEntity);
         stream.putLLong((uint64_t) info.mTimeInNs);
         stream.putByte((unsigned char) info.mPercentOfTotal);
+        if (!capabilities.mDiagnosticsActorPosition)
+            continue;
+        if (!capabilities.mDiagnosticsOptionalFields) {
+            stream.putVector3f(info.mPosition);
+            stream.putString(info.mDimension);
+            continue;
+        }
         stream.putOptionalPresent(info.mHasPosition);
         if (info.mHasPosition)
             stream.putVector3f(info.mPosition);
@@ -43,8 +51,9 @@ void ServerboundDiagnosticsPacket::write(BinaryStream &stream, const PacketCodec
         stream.putByte((unsigned char) info.mPercentOfTotal);
     }
 
-    stream.putOptionalPresent(mHasSystemCategories);
-    if (mHasSystemCategories) {
+    if (capabilities.mDiagnosticsOptionalFields)
+        stream.putOptionalPresent(mHasSystemCategories);
+    if (mHasSystemCategories || !capabilities.mDiagnosticsOptionalFields) {
         stream.putArrayLength((uint32_t) mSystemCategories.size());
         for (const SystemCategory &info: mSystemCategories) {
             stream.putString(info.mCategoryName);
@@ -63,6 +72,7 @@ void ServerboundDiagnosticsPacket::write(BinaryStream &stream, const PacketCodec
 }
 
 void ServerboundDiagnosticsPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
+    const ProtocolCapabilities &capabilities = context.getCapabilities();
     mAvgFps = stream.getLFloat();
     mAvgServerSimTickTimeMs = stream.getLFloat();
     mAvgClientSimTickTimeMs = stream.getLFloat();
@@ -90,12 +100,19 @@ void ServerboundDiagnosticsPacket::read(ReadOnlyBinaryStream &stream, const Pack
         info.mEntity = stream.getString();
         info.mTimeInNs = (int64_t) stream.getLLong();
         info.mPercentOfTotal = (int8_t) stream.getByte();
-        info.mHasPosition = stream.getOptionalPresent();
-        if (info.mHasPosition)
+        if (capabilities.mDiagnosticsActorPosition && capabilities.mDiagnosticsOptionalFields) {
+            info.mHasPosition = stream.getOptionalPresent();
+            if (info.mHasPosition)
+                info.mPosition = stream.getVector3f();
+            info.mHasDimension = stream.getOptionalPresent();
+            if (info.mHasDimension)
+                info.mDimension = stream.getString();
+        } else if (capabilities.mDiagnosticsActorPosition) {
+            info.mHasPosition = true;
             info.mPosition = stream.getVector3f();
-        info.mHasDimension = stream.getOptionalPresent();
-        if (info.mHasDimension)
+            info.mHasDimension = true;
             info.mDimension = stream.getString();
+        }
         mEntityDiagnostics.push_back(info);
     }
 
@@ -110,7 +127,7 @@ void ServerboundDiagnosticsPacket::read(ReadOnlyBinaryStream &stream, const Pack
         mSystemDiagnostics.push_back(info);
     }
 
-    mHasSystemCategories = stream.getOptionalPresent();
+    mHasSystemCategories = !capabilities.mDiagnosticsOptionalFields || stream.getOptionalPresent();
     if (mHasSystemCategories) {
         uint32_t categoryCount = stream.getArrayLength();
         mSystemCategories.reserve(categoryCount);

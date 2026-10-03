@@ -7,7 +7,8 @@ PlayerSkinPacket::PlayerSkinPacket() = default;
 
 void PlayerSkinPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
     stream.putUuid(mUuid);
-    SkinCodec::writeSkin(stream, mSkin);
+    const std::string noPlayFabId;
+    SkinCodec::writeSkin(stream, mSkin, context.getCapabilities().mPlayerListPlayFabId ? nullptr : &noPlayFabId);
     stream.putString(mNewSkinName);
     stream.putString(mOldSkinName);
     stream.putBool(mTrustedSkin);
@@ -15,7 +16,8 @@ void PlayerSkinPacket::write(BinaryStream &stream, const PacketCodecContext &con
 
 void PlayerSkinPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
     mUuid = stream.getUuid();
-    mSkin = SkinCodec::readSkin(stream);
+    std::string playFabId;
+    mSkin = SkinCodec::readSkin(stream, context.getCapabilities().mPlayerListPlayFabId ? nullptr : &playFabId);
     mNewSkinName = stream.getString();
     mOldSkinName = stream.getString();
 

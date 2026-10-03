@@ -70,7 +70,7 @@ namespace {
 
     stream.putOptionalPresent(shape.mHasAttachedToActorId);
     if (shape.mHasAttachedToActorId)
-        stream.putUnsignedVarLong(shape.mAttachedToActorId);
+        stream.putVarLong((int64_t) shape.mAttachedToActorId);
 
         stream.putUnsignedVarInt((uint32_t) toPayloadType(shape.mHasType, shape.mType));
 
@@ -178,7 +178,7 @@ namespace {
 
     shape.mHasAttachedToActorId = stream.getOptionalPresent();
     if (shape.mHasAttachedToActorId)
-        shape.mAttachedToActorId = stream.getUnsignedVarLong();
+        shape.mAttachedToActorId = (uint64_t) stream.getVarLong();
 
         stream.getUnsignedVarInt();
 

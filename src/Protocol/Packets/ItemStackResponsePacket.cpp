@@ -23,13 +23,13 @@ namespace {
         return name;
     }
 
-    void writeItemEntry(BinaryStream &stream, const ItemStackResponseSlot &entry) {
+    void writeItemEntry(BinaryStream &stream, const PacketCodecContext &context, const ItemStackResponseSlot &entry) {
         stream.putByte((unsigned char) entry.mSlot);
         stream.putByte((unsigned char) entry.mHotbarSlot);
         stream.putByte((unsigned char) entry.mCount);
 
         const bool hasStackNetworkId = entry.mStackNetworkId != 0;
-        stream.putOptionalPresent(hasStackNetworkId);
+        context.putPresence(stream, hasStackNetworkId);
         if (hasStackNetworkId) {
             stream.putVarInt(entry.mStackNetworkId);
         }
@@ -44,13 +44,13 @@ namespace {
         stream.putVarInt(entry.mDurabilityCorrection);
     }
 
-    ItemStackResponseSlot readItemEntry(ReadOnlyBinaryStream &stream) {
+    ItemStackResponseSlot readItemEntry(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
         ItemStackResponseSlot entry;
         entry.mSlot = stream.getByte();
         entry.mHotbarSlot = stream.getByte();
         entry.mCount = stream.getByte();
 
-        if (stream.getOptionalPresent()) {
+        if (context.getPresence(stream)) {
             entry.mStackNetworkId = stream.getVarInt();
         }
 
@@ -64,22 +64,24 @@ namespace {
         return entry;
     }
 
-    void writeItemStackResponseContainer(BinaryStream &stream, const ItemStackResponseContainer &container) {
+    void writeItemStackResponseContainer(BinaryStream &stream, const PacketCodecContext &context,
+                                         const ItemStackResponseContainer &container) {
         writeFullContainerName(stream, container.mContainerName);
         stream.putArrayLength((uint32_t) container.mItems.size());
         for (const ItemStackResponseSlot &item: container.mItems) {
-            writeItemEntry(stream, item);
+            writeItemEntry(stream, context, item);
         }
     }
 
-    ItemStackResponseContainer readItemStackResponseContainer(ReadOnlyBinaryStream &stream) {
+    ItemStackResponseContainer readItemStackResponseContainer(ReadOnlyBinaryStream &stream,
+                                                              const PacketCodecContext &context) {
         ItemStackResponseContainer container;
         container.mContainerName = readFullContainerName(stream);
 
         uint32_t count = stream.getArrayLength();
         container.mItems.reserve(count);
         for (uint32_t i = 0; i < count; i++) {
-            container.mItems.push_back(readItemEntry(stream));
+            container.mItems.push_back(readItemEntry(stream, context));
         }
 
         return container;
@@ -94,14 +96,14 @@ void ItemStackResponsePacket::write(BinaryStream &stream, const PacketCodecConte
         stream.putByte((unsigned char) entry.mResult);
         stream.putVarInt(entry.mRequestId);
 
-        stream.putOptionalPresent(!entry.mContainers.empty());
+        context.putPresence(stream, !entry.mContainers.empty());
         if (entry.mContainers.empty()) {
             continue;
         }
 
         stream.putArrayLength((uint32_t) entry.mContainers.size());
         for (const ItemStackResponseContainer &container: entry.mContainers) {
-            writeItemStackResponseContainer(stream, container);
+            writeItemStackResponseContainer(stream, context, container);
         }
     }
 }
@@ -114,11 +116,11 @@ void ItemStackResponsePacket::read(ReadOnlyBinaryStream &stream, const PacketCod
         entry.mResult = stream.getByte();
         entry.mRequestId = stream.getVarInt();
 
-        if (stream.getOptionalPresent()) {
+        if (context.getPresence(stream)) {
             uint32_t containerCount = stream.getArrayLength();
             entry.mContainers.reserve(containerCount);
             for (uint32_t j = 0; j < containerCount; j++) {
-                entry.mContainers.push_back(readItemStackResponseContainer(stream));
+                entry.mContainers.push_back(readItemStackResponseContainer(stream, context));
             }
         }
 

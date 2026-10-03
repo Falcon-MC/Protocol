@@ -22,6 +22,8 @@ void PlayerAuthInputPacket::write(BinaryStream &stream, const PacketCodecContext
     stream.putLFloat(mMotionY);
     stream.putLFloat(mRotation.z);
 
+    if (context.getCapabilities().mDoubledPresence)
+        stream.putBool(true);
     stream.putUnsignedVarInt((uint32_t) mInputData.size());
     for (int32_t entry: mInputData) {
         stream.putVarInt(entry);
@@ -35,44 +37,35 @@ void PlayerAuthInputPacket::write(BinaryStream &stream, const PacketCodecContext
     stream.putUnsignedVarLong((uint64_t) mTick);
     stream.putVector3f(mDelta);
 
-    if (hasInputFlag((int32_t) PlayerAuthInputData::PerformItemInteraction)) {
-        stream.putBool(true);
+    const bool itemInteraction = hasInputFlag((int32_t) PlayerAuthInputData::PerformItemInteraction);
+    context.putPresence(stream, itemInteraction);
+    if (itemInteraction)
         InventoryCodec::writeItemUseTransaction(stream, context, mItemUseTransaction);
-    } else {
-        stream.putBool(false);
-    }
 
-    if (hasInputFlag((int32_t) PlayerAuthInputData::PerformItemStackRequest)) {
-        stream.putBool(true);
+    const bool stackRequest = hasInputFlag((int32_t) PlayerAuthInputData::PerformItemStackRequest);
+    context.putPresence(stream, stackRequest);
+    if (stackRequest)
         InventoryCodec::writeItemStackRequest(stream, context, mItemStackRequest);
-    } else {
-        stream.putBool(false);
-    }
 
-    if (hasInputFlag((int32_t) PlayerAuthInputData::PerformBlockActions)) {
-        stream.putBool(true);
+    const bool blockActions = hasInputFlag((int32_t) PlayerAuthInputData::PerformBlockActions);
+    context.putPresence(stream, blockActions);
+    if (blockActions) {
         stream.putUnsignedVarInt((uint32_t) mPlayerActions.size());
         for (const PlayerBlockActionData &action: mPlayerActions) {
             InventoryCodec::writePlayerBlockActionData(stream, action);
         }
-    } else {
-        stream.putBool(false);
     }
 
-    if (hasInputFlag((int32_t) PlayerAuthInputData::InClientPredictedInVehicle)) {
-        stream.putBool(true);
+    const bool inVehicle = hasInputFlag((int32_t) PlayerAuthInputData::InClientPredictedInVehicle);
+    context.putPresence(stream, inVehicle);
+    if (inVehicle) {
         stream.putLFloat(mVehicleRotationX);
         stream.putLFloat(mVehicleRotationY);
-    } else {
-        stream.putBool(false);
     }
 
-    if (hasInputFlag((int32_t) PlayerAuthInputData::InClientPredictedInVehicle)) {
-        stream.putBool(true);
+    context.putPresence(stream, inVehicle);
+    if (inVehicle)
         stream.putVarLong(mPredictedVehicle);
-    } else {
-        stream.putBool(false);
-    }
 
     stream.putLFloat(mAnalogMoveVectorX);
     stream.putLFloat(mAnalogMoveVectorY);
@@ -90,10 +83,12 @@ void PlayerAuthInputPacket::read(ReadOnlyBinaryStream &stream, const PacketCodec
     float rotationZ = stream.getLFloat();
     mRotation = Vector3f(rotationX, rotationY, rotationZ);
 
-    uint32_t inputCount = stream.getUnsignedVarInt();
-    mInputData.reserve(inputCount);
-    for (uint32_t i = 0; i < inputCount; i++) {
-        mInputData.push_back(stream.getVarInt());
+    if (!context.getCapabilities().mDoubledPresence || stream.getBool()) {
+        uint32_t inputCount = stream.getUnsignedVarInt();
+        mInputData.reserve(inputCount);
+        for (uint32_t i = 0; i < inputCount; i++) {
+            mInputData.push_back(stream.getVarInt());
+        }
     }
 
     mInputMode = (PlayerInputMode) stream.getUnsignedVarInt();
@@ -104,17 +99,17 @@ void PlayerAuthInputPacket::read(ReadOnlyBinaryStream &stream, const PacketCodec
     mTick = (int64_t) stream.getUnsignedVarLong();
     mDelta = stream.getVector3f();
 
-    if (stream.getBool()) {
+    if (context.getPresence(stream)) {
         mHasItemUseTransaction = true;
         mItemUseTransaction = InventoryCodec::readItemUseTransaction(stream, context);
     }
 
-    if (stream.getBool()) {
+    if (context.getPresence(stream)) {
         mHasItemStackRequest = true;
         mItemStackRequest = InventoryCodec::readItemStackRequest(stream, context);
     }
 
-    if (stream.getBool()) {
+    if (context.getPresence(stream)) {
         uint32_t count = stream.getUnsignedVarInt();
         mPlayerActions.reserve(count);
         for (uint32_t i = 0; i < count; i++) {
@@ -122,13 +117,13 @@ void PlayerAuthInputPacket::read(ReadOnlyBinaryStream &stream, const PacketCodec
         }
     }
 
-    if (stream.getBool()) {
+    if (context.getPresence(stream)) {
         mHasVehicleRotation = true;
         mVehicleRotationX = stream.getLFloat();
         mVehicleRotationY = stream.getLFloat();
     }
 
-    if (stream.getBool()) {
+    if (context.getPresence(stream)) {
         mHasPredictedVehicle = true;
         mPredictedVehicle = stream.getVarLong();
     }

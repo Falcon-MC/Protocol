@@ -36,6 +36,16 @@ ItemStackRequestActionType itemStackRequestActionTypeFromId(int32_t id);
 
 int32_t itemStackRequestActionTypeToLegacyId(int32_t id);
 
+/**
+ * Shifts an action ID for versions without CraftReserved, where every later action is one lower.
+ */
+int32_t itemStackRequestActionIdForVersion(int32_t id, bool craftReserved);
+
+/**
+ * The current action ID of an ID received from a version without CraftReserved.
+ */
+int32_t itemStackRequestActionIdFromVersion(int32_t id, bool craftReserved);
+
 class ItemStackRequestAction {
 public:
     ItemStackRequestActionType mType = ItemStackRequestActionType::Take;

@@ -150,7 +150,87 @@ namespace {
         return value;
     }
 
-    void writeEnvironmentAttribute(BinaryStream &stream, const EnvironmentAttributeData &attribute) {
+    const std::array<std::string, 31> CAMERA_EASE_NAMES = {
+        "linear", "spring", "in_sine", "out_sine", "in_out_sine", "in_quad", "out_quad", "in_out_quad",
+        "in_cubic", "out_cubic", "in_out_cubic", "in_quart", "out_quart", "in_out_quart", "in_quint",
+        "out_quint", "in_out_quint", "in_expo", "out_expo", "in_out_expo", "in_circ", "out_circ",
+        "in_out_circ", "in_back", "out_back", "in_out_back", "in_elastic", "out_elastic", "in_out_elastic",
+        "in_bounce", "out_bounce"
+    };
+
+    /**
+     * Before payload types, an attribute was sent as a value with optional start and end values and one set of
+     * transition fields, and a transition was a noise transition when its flag said so.
+     */
+    void writeLegacyEnvironmentAttribute(BinaryStream &stream, const EnvironmentAttributeData &attribute,
+                                         bool noiseAlignment) {
+        const bool transition = attribute.mPayloadType != EnvironmentAttributePayloadType::Constant;
+        const bool noise = attribute.mPayloadType == EnvironmentAttributePayloadType::NoiseTransition;
+        const AttributeNoiseTransitionSettings &noiseSettings = attribute.mNoiseTransitionSettings;
+        const AttributeTransitionSettings &settings = attribute.mTransitionSettings;
+
+        stream.putString(attribute.mAttributeName);
+        stream.putOptionalPresent(transition);
+        if (transition)
+            writeAttributeValue(stream, attribute.mFrom);
+        writeAttributeValue(stream, transition ? attribute.mTo : attribute.mAttribute);
+        stream.putOptionalPresent(transition);
+        if (transition)
+            writeAttributeValue(stream, attribute.mTo);
+        stream.putLInt(noise ? noiseSettings.mCurrentTransitionTicks : settings.mCurrentTransitionTicks);
+        stream.putLInt(noise ? noiseSettings.mTotalTransitionTicks : settings.mTotalTransitionTicks);
+        stream.putString(CAMERA_EASE_NAMES[(size_t) (noise ? noiseSettings.mEasing : settings.mEasing)]);
+        stream.putLInt(noise ? noiseSettings.mLocalTransitionTicks : 0);
+        stream.putBool(noise);
+        if (!noiseAlignment)
+            return;
+        stream.putByte((unsigned char) noiseSettings.mNoiseAlignment.mType);
+        stream.putUnsignedVarInt((uint32_t) noiseSettings.mNoiseAlignment.mValue);
+    }
+
+    EnvironmentAttributeData readLegacyEnvironmentAttribute(ReadOnlyBinaryStream &stream, bool noiseAlignment) {
+        EnvironmentAttributeData attribute;
+        attribute.mAttributeName = stream.getString();
+        const bool hasFrom = stream.getOptionalPresent();
+        if (hasFrom)
+            attribute.mFrom = readAttributeValue(stream);
+        attribute.mAttribute = readAttributeValue(stream);
+        const bool hasTo = stream.getOptionalPresent();
+        if (hasTo)
+            attribute.mTo = readAttributeValue(stream);
+
+        const uint32_t currentTicks = stream.getLInt();
+        const uint32_t totalTicks = stream.getLInt();
+        const CameraEase easing =
+                (CameraEase) indexOf(stream.getString(), CAMERA_EASE_NAMES.data(), CAMERA_EASE_NAMES.size());
+        const uint32_t localTicks = stream.getLInt();
+        const bool noise = stream.getBool();
+        NoiseAlignment alignment;
+        if (noiseAlignment) {
+            alignment.mType = (NoiseAlignmentType) stream.getByte();
+            alignment.mValue = (int32_t) stream.getUnsignedVarInt();
+        }
+
+        if (!hasFrom && !hasTo)
+            return attribute;
+        if (!noise) {
+            attribute.mPayloadType = EnvironmentAttributePayloadType::Transition;
+            attribute.mTransitionSettings.mCurrentTransitionTicks = currentTicks;
+            attribute.mTransitionSettings.mTotalTransitionTicks = totalTicks;
+            attribute.mTransitionSettings.mEasing = easing;
+            return attribute;
+        }
+
+        attribute.mPayloadType = EnvironmentAttributePayloadType::NoiseTransition;
+        attribute.mNoiseTransitionSettings.mCurrentTransitionTicks = currentTicks;
+        attribute.mNoiseTransitionSettings.mTotalTransitionTicks = totalTicks;
+        attribute.mNoiseTransitionSettings.mEasing = easing;
+        attribute.mNoiseTransitionSettings.mLocalTransitionTicks = localTicks;
+        attribute.mNoiseTransitionSettings.mNoiseAlignment = alignment;
+        return attribute;
+    }
+
+    void writePayloadEnvironmentAttribute(BinaryStream &stream, const EnvironmentAttributeData &attribute) {
         stream.putString(attribute.mAttributeName);
         stream.putUnsignedVarInt((uint32_t) attribute.mPayloadType);
         switch (attribute.mPayloadType) {
@@ -184,7 +264,7 @@ namespace {
         }
     }
 
-    EnvironmentAttributeData readEnvironmentAttribute(ReadOnlyBinaryStream &stream) {
+    EnvironmentAttributeData readPayloadEnvironmentAttribute(ReadOnlyBinaryStream &stream) {
         EnvironmentAttributeData attribute;
         attribute.mAttributeName = stream.getString();
         attribute.mPayloadType = (EnvironmentAttributePayloadType) stream.getUnsignedVarInt();
@@ -222,6 +302,22 @@ namespace {
         return attribute;
     }
 
+    void writeEnvironmentAttribute(BinaryStream &stream, const PacketCodecContext &context,
+                                   const EnvironmentAttributeData &attribute) {
+        const ProtocolCapabilities &capabilities = context.getCapabilities();
+        if (capabilities.mAttributePayloads)
+            writePayloadEnvironmentAttribute(stream, attribute);
+        else
+            writeLegacyEnvironmentAttribute(stream, attribute, capabilities.mAttributeNoiseAlignment);
+    }
+
+    EnvironmentAttributeData readEnvironmentAttribute(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
+        const ProtocolCapabilities &capabilities = context.getCapabilities();
+        if (capabilities.mAttributePayloads)
+            return readPayloadEnvironmentAttribute(stream);
+        return readLegacyEnvironmentAttribute(stream, capabilities.mAttributeNoiseAlignment);
+    }
+
 }
 
 ClientboundAttributeLayerSyncPacket::ClientboundAttributeLayerSyncPacket() = default;
@@ -238,7 +334,7 @@ void ClientboundAttributeLayerSyncPacket::write(BinaryStream &stream, const Pack
                 writeSettings(stream, layer.mSettings);
                 stream.putArrayLength((uint32_t) layer.mAttributes.size());
                 for (const EnvironmentAttributeData &attribute: layer.mAttributes) {
-                    writeEnvironmentAttribute(stream, attribute);
+                    writeEnvironmentAttribute(stream, context, attribute);
                 }
             }
             break;
@@ -252,7 +348,7 @@ void ClientboundAttributeLayerSyncPacket::write(BinaryStream &stream, const Pack
             stream.putVarInt(mData.mDimension);
             stream.putArrayLength((uint32_t) mData.mAttributes.size());
             for (const EnvironmentAttributeData &attribute: mData.mAttributes) {
-                writeEnvironmentAttribute(stream, attribute);
+                writeEnvironmentAttribute(stream, context, attribute);
             }
             break;
         case AttributeLayerSyncPayloadType::RemoveEnvironmentAttributes:
@@ -281,7 +377,7 @@ void ClientboundAttributeLayerSyncPacket::read(ReadOnlyBinaryStream &stream, con
                 uint32_t attributeCount = stream.getArrayLength();
                 layer.mAttributes.reserve(attributeCount);
                 for (uint32_t j = 0; j < attributeCount; j++) {
-                    layer.mAttributes.push_back(readEnvironmentAttribute(stream));
+                    layer.mAttributes.push_back(readEnvironmentAttribute(stream, context));
                 }
                 mData.mLayers.push_back(std::move(layer));
             }
@@ -298,7 +394,7 @@ void ClientboundAttributeLayerSyncPacket::read(ReadOnlyBinaryStream &stream, con
             uint32_t attributeCount = stream.getArrayLength();
             mData.mAttributes.reserve(attributeCount);
             for (uint32_t i = 0; i < attributeCount; i++) {
-                mData.mAttributes.push_back(readEnvironmentAttribute(stream));
+                mData.mAttributes.push_back(readEnvironmentAttribute(stream, context));
             }
             break;
         }

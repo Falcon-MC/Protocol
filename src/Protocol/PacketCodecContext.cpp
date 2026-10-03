@@ -1,5 +1,34 @@
 #include "Protocol/PacketCodecContext.h"
 
+#include "Protocol/Codec/ProtocolCodecRegistry.h"
+
+#include <utility>
+
 PacketCodecContext::PacketCodecContext(const BlockDefinitionRegistry &blockDefinitions,
                                        const ItemDefinitionRegistry &itemDefinitions)
         : mBlockDefinitions(blockDefinitions), mItemDefinitions(itemDefinitions) {}
+
+PacketCodecContext::PacketCodecContext(const BlockDefinitionRegistry &blockDefinitions,
+                                       const ItemDefinitionRegistry &itemDefinitions,
+                                       std::shared_ptr<const ProtocolCodec> codec)
+        : mBlockDefinitions(blockDefinitions), mItemDefinitions(itemDefinitions), mCodec(std::move(codec)) {}
+
+const ProtocolCodec &PacketCodecContext::getCodec() const {
+    return mCodec != nullptr ? *mCodec : ProtocolCodecRegistry::instance().getDefault();
+}
+
+const ProtocolCapabilities &PacketCodecContext::getCapabilities() const {
+    return getCodec().getCapabilities();
+}
+
+void PacketCodecContext::putPresence(BinaryStream &stream, bool present) const {
+    if (getCapabilities().mDoubledPresence)
+        stream.putBool(true);
+    stream.putBool(present);
+}
+
+bool PacketCodecContext::getPresence(ReadOnlyBinaryStream &stream) const {
+    if (getCapabilities().mDoubledPresence && !stream.getBool())
+        return false;
+    return stream.getBool();
+}
