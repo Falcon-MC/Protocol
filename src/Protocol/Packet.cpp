@@ -1,5 +1,6 @@
 #include "Protocol/Packet.h"
 
+#include "Protocol/Codec/ProtocolCodec.h"
 #include "Protocol/NetworkPacketHandler.h"
 
 Packet::Packet()
@@ -17,8 +18,7 @@ void Packet::writeHeader(BinaryStream &stream) const {
 }
 
 void Packet::writeWithHeader(BinaryStream &stream, const PacketCodecContext &context) const {
-    writeHeader(stream);
-    write(stream, context);
+    context.getCodec().write(*this, stream, context);
 }
 
 void Packet::readHeader(ReadOnlyBinaryStream &stream) {
