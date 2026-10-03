@@ -39,6 +39,18 @@ int32_t PacketCodecContext::fromNetworkItemId(int32_t networkId) const {
     return mItemNetworkIds == nullptr ? networkId : mItemNetworkIds->toCurrent(networkId);
 }
 
+void PacketCodecContext::setBlockNetworkIds(std::shared_ptr<const BlockNetworkIdMap> blockNetworkIds) {
+    mBlockNetworkIds = std::move(blockNetworkIds);
+}
+
+int32_t PacketCodecContext::toNetworkBlockId(int32_t blockId) const {
+    return mBlockNetworkIds == nullptr ? blockId : mBlockNetworkIds->toClient(blockId);
+}
+
+int32_t PacketCodecContext::fromNetworkBlockId(int32_t networkId) const {
+    return mBlockNetworkIds == nullptr ? networkId : mBlockNetworkIds->toCurrent(networkId);
+}
+
 bool PacketCodecContext::getPresence(ReadOnlyBinaryStream &stream) const {
     if (getCapabilities().mDoubledPresence && !stream.getBool())
         return false;

@@ -400,7 +400,8 @@ void InventoryCodec::writeItemUseTransaction(BinaryStream &stream, const PacketC
     ItemCodec::writeNetworkItemStackDescriptor(stream, context, transaction.mItemInHand);
     stream.putVector3f(transaction.mPlayerPosition);
     stream.putVector3f(transaction.mClickPosition);
-    stream.putUnsignedVarInt(transaction.mBlockDefinition == nullptr ? 0 : (uint32_t) transaction.mBlockDefinition->getRuntimeId());
+    stream.putUnsignedVarInt(transaction.mBlockDefinition == nullptr
+                             ? 0 : (uint32_t) context.toNetworkBlockId(transaction.mBlockDefinition->getRuntimeId()));
     stream.putByte((unsigned char) transaction.mClientInteractPrediction);
     stream.putByte((unsigned char) transaction.mClientCooldownState);
 }
@@ -435,7 +436,8 @@ ItemUseTransaction InventoryCodec::readItemUseTransaction(ReadOnlyBinaryStream &
 
     int blockRuntimeId = (int) stream.getUnsignedVarInt();
     if (blockRuntimeId != 0) {
-        transaction.mBlockDefinition = context.getBlockDefinitions().getDefinition(blockRuntimeId);
+        transaction.mBlockDefinition = context.getBlockDefinitions().getDefinition(
+                context.fromNetworkBlockId(blockRuntimeId));
     }
 
     transaction.mClientInteractPrediction = (ItemUsePredictedResult) stream.getByte();

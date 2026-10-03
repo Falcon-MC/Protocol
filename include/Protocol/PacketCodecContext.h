@@ -4,6 +4,7 @@
 #include "Core/Utility/ReadOnlyBinaryStream.h"
 #include "Protocol/Codec/ProtocolCapabilities.h"
 #include "Protocol/Types/BlockDefinitionRegistry.h"
+#include "Protocol/Types/BlockNetworkIdMap.h"
 #include "Protocol/Types/ItemDefinitionRegistry.h"
 #include "Protocol/Types/ItemNetworkIdMap.h"
 
@@ -51,9 +52,24 @@ public:
 
     int32_t fromNetworkItemId(int32_t networkId) const;
 
+    /**
+     * Makes this context translate block network IDs for a client of another version.
+     */
+    void setBlockNetworkIds(std::shared_ptr<const BlockNetworkIdMap> blockNetworkIds);
+
+    /**
+     * The block translation of this context, or nullptr when the client shares the server's block states.
+     */
+    const BlockNetworkIdMap *getBlockNetworkIds() const { return mBlockNetworkIds.get(); }
+
+    int32_t toNetworkBlockId(int32_t blockId) const;
+
+    int32_t fromNetworkBlockId(int32_t networkId) const;
+
 private:
     const BlockDefinitionRegistry &mBlockDefinitions;
     const ItemDefinitionRegistry &mItemDefinitions;
     std::shared_ptr<const ProtocolCodec> mCodec;
     std::shared_ptr<const ItemNetworkIdMap> mItemNetworkIds;
+    std::shared_ptr<const BlockNetworkIdMap> mBlockNetworkIds;
 };

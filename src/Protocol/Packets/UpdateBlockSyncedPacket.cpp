@@ -7,7 +7,7 @@ UpdateBlockSyncedPacket::UpdateBlockSyncedPacket()
 
 void UpdateBlockSyncedPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
     stream.putBlockPosition(mBlockPosition);
-    stream.putUnsignedVarInt(mRuntimeId);
+    stream.putUnsignedVarInt((uint32_t) context.toNetworkBlockId((int32_t) mRuntimeId));
     stream.putUnsignedVarInt(mFlags);
     stream.putUnsignedVarInt(mDataLayer);
     stream.putUnsignedVarLong(mRuntimeActorId);
@@ -16,7 +16,7 @@ void UpdateBlockSyncedPacket::write(BinaryStream &stream, const PacketCodecConte
 
 void UpdateBlockSyncedPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
     mBlockPosition = stream.getBlockPosition();
-    mRuntimeId = stream.getUnsignedVarInt();
+    mRuntimeId = (uint32_t) context.fromNetworkBlockId((int32_t) stream.getUnsignedVarInt());
     mFlags = stream.getUnsignedVarInt();
     mDataLayer = stream.getUnsignedVarInt();
     mRuntimeActorId = stream.getUnsignedVarLong();

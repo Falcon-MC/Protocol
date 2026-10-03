@@ -44,7 +44,8 @@ void InventoryTransactionPacket::write(BinaryStream &stream, const PacketCodecCo
             ItemCodec::writeNetworkItemStackDescriptor(stream, context, mItemInHand);
             stream.putVector3f(mPlayerPosition);
             stream.putVector3f(mClickPosition);
-            stream.putUnsignedVarInt(mBlockDefinition == nullptr ? 0 : (uint32_t) mBlockDefinition->getRuntimeId());
+            stream.putUnsignedVarInt(mBlockDefinition == nullptr
+                                     ? 0 : (uint32_t) context.toNetworkBlockId(mBlockDefinition->getRuntimeId()));
             stream.putByte((unsigned char) mClientInteractPrediction);
             stream.putByte((unsigned char) mClientCooldownState);
             break;
@@ -104,7 +105,8 @@ void InventoryTransactionPacket::read(ReadOnlyBinaryStream &stream, const Packet
             mItemInHand = ItemCodec::readNetworkItemStackDescriptor(stream, context);
             mPlayerPosition = stream.getVector3f();
             mClickPosition = stream.getVector3f();
-            mBlockDefinition = context.getBlockDefinitions().getDefinition((int) stream.getUnsignedVarInt());
+            mBlockDefinition = context.getBlockDefinitions().getDefinition(
+                    context.fromNetworkBlockId((int) stream.getUnsignedVarInt()));
             mClientInteractPrediction = (ItemUsePredictedResult) stream.getByte();
             mClientCooldownState = stream.getSignedByte();
             break;

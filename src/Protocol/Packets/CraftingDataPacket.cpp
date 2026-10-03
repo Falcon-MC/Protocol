@@ -81,7 +81,7 @@ namespace {
         stream.putVarInt(context.toNetworkItemId(output.mRuntimeId));
         stream.putLShort((uint16_t) output.mCount);
         stream.putUnsignedVarInt((uint32_t) output.mMeta);
-        stream.putVarInt(output.mBlockRuntimeId);
+        stream.putVarInt(context.toNetworkBlockId(output.mBlockRuntimeId));
 
         if (output.mTag.getType() == Tag::Type::End) {
             stream.putString(output.mIsShield ? EMPTY_SHIELD_EXTRA_DATA : EMPTY_ITEM_EXTRA_DATA);

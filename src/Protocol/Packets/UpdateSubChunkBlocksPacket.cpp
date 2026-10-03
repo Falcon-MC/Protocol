@@ -4,18 +4,19 @@
 
 namespace {
 
-    void writeBlockChangeEntry(BinaryStream &stream, const BlockChangeEntry &entry) {
+    void writeBlockChangeEntry(BinaryStream &stream, const PacketCodecContext &context,
+                               const BlockChangeEntry &entry) {
         stream.putBlockPosition(entry.mPosition);
-        stream.putUnsignedVarInt(entry.mRuntimeId);
+        stream.putUnsignedVarInt((uint32_t) context.toNetworkBlockId((int32_t) entry.mRuntimeId));
         stream.putUnsignedVarInt(entry.mUpdateFlags);
         stream.putUnsignedVarLong(entry.mMessageEntityId);
         stream.putUnsignedVarInt((uint32_t) entry.mMessageType);
     }
 
-    BlockChangeEntry readBlockChangeEntry(ReadOnlyBinaryStream &stream) {
+    BlockChangeEntry readBlockChangeEntry(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
         BlockChangeEntry entry;
         entry.mPosition = stream.getBlockPosition();
-        entry.mRuntimeId = stream.getUnsignedVarInt();
+        entry.mRuntimeId = (uint32_t) context.fromNetworkBlockId((int32_t) stream.getUnsignedVarInt());
         entry.mUpdateFlags = stream.getUnsignedVarInt();
         entry.mMessageEntityId = stream.getUnsignedVarLong();
         entry.mMessageType = (BlockChangeMessageType) stream.getUnsignedVarInt();
@@ -31,12 +32,12 @@ void UpdateSubChunkBlocksPacket::write(BinaryStream &stream, const PacketCodecCo
 
     stream.putArrayLength((uint32_t) mStandardBlocks.size());
     for (const BlockChangeEntry &entry: mStandardBlocks) {
-        writeBlockChangeEntry(stream, entry);
+        writeBlockChangeEntry(stream, context, entry);
     }
 
     stream.putArrayLength((uint32_t) mExtraBlocks.size());
     for (const BlockChangeEntry &entry: mExtraBlocks) {
-        writeBlockChangeEntry(stream, entry);
+        writeBlockChangeEntry(stream, context, entry);
     }
 }
 
@@ -46,13 +47,13 @@ void UpdateSubChunkBlocksPacket::read(ReadOnlyBinaryStream &stream, const Packet
     uint32_t standardCount = stream.getArrayLength();
     mStandardBlocks.reserve(standardCount);
     for (uint32_t i = 0; i < standardCount; i++) {
-        mStandardBlocks.push_back(readBlockChangeEntry(stream));
+        mStandardBlocks.push_back(readBlockChangeEntry(stream, context));
     }
 
     uint32_t extraCount = stream.getArrayLength();
     mExtraBlocks.reserve(extraCount);
     for (uint32_t i = 0; i < extraCount; i++) {
-        mExtraBlocks.push_back(readBlockChangeEntry(stream));
+        mExtraBlocks.push_back(readBlockChangeEntry(stream, context));
     }
 }
 
