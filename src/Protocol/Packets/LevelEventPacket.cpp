@@ -8,7 +8,13 @@ LevelEventPacket::LevelEventPacket()
 void LevelEventPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
     stream.putVarInt(mEventId);
     stream.putVector3f(mPosition);
-    stream.putVarInt(mEventId == Event::ParticleDestroy ? context.toNetworkBlockId(mData) : mData);
+    if (mEventId == Event::ParticleDestroy) {
+        stream.putVarInt(context.toNetworkBlockId(mData));
+    } else if (mEventId == Event::ParticlePunchBlock) {
+        stream.putVarInt(context.toNetworkBlockId(mData) | (mBlockFace << 24));
+    } else {
+        stream.putVarInt(mData);
+    }
 }
 
 void LevelEventPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
