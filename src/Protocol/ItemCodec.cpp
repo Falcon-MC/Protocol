@@ -134,7 +134,7 @@ ItemStack ItemCodec::readItemInstance(ReadOnlyBinaryStream &stream, const Packet
         stream.getLShort();
         stream.getUnsignedVarInt();
         stream.getVarInt();
-        stream.getUnsignedVarInt();
+        stream.get(stream.getUnsignedVarInt());
         return ItemStack::air();
     }
 
@@ -333,9 +333,11 @@ ItemStack ItemCodec::readNetworkItemStackDescriptor(ReadOnlyBinaryStream &stream
     if (runtimeId == 0) {
         stream.getLShort();
         stream.getUnsignedVarInt();
-        stream.getBool();
+        if (stream.getBool()) {
+            stream.getVarInt();
+        }
         stream.getUnsignedVarInt();
-        stream.getUnsignedVarInt();
+        stream.get(stream.getUnsignedVarInt());
         return ItemStack::air();
     }
 
