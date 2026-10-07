@@ -2,7 +2,7 @@
 
 #include "Protocol/Codec/Codec2169.h"
 #include "Protocol/Codec/Codec2193.h"
-#include "Protocol/Codec/Codec2223.h"
+#include "Protocol/Codec/Codec2225.h"
 
 #include <algorithm>
 
@@ -11,7 +11,7 @@ ProtocolCodecRegistry &ProtocolCodecRegistry::instance() {
     return registry;
 }
 
-ProtocolCodecRegistry::ProtocolCodecRegistry() : mDefault(Codec2223::create()) {
+ProtocolCodecRegistry::ProtocolCodecRegistry() : mDefault(Codec2225::create()) {
     mCodecs[mDefault->getProtocolVersion()] = mDefault;
 
     for (const std::shared_ptr<const ProtocolCodec> &codec:
