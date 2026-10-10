@@ -1,11 +1,12 @@
 #include "Protocol/CameraCodec.h"
 #include "Protocol/Packets/CameraPresetsPacket.h"
 
-#include <cstdlib>
-#include <iostream>
+#include <stdexcept>
 
 static void check(bool value, const char *message) {
-    if (!value) { std::cerr << message << '\n'; std::exit(1); }
+    if (!value) {
+        throw std::runtime_error(message);
+    }
 }
 
 int main() {
