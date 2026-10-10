@@ -198,49 +198,23 @@ CameraSplineInstruction CameraCodec::readSplineInstruction(ReadOnlyBinaryStream 
 }
 
 void CameraCodec::writeAimAssistPreset(BinaryStream &stream, const CameraAimAssistPreset &preset) {
-    stream.putOptionalPresent(preset.mHasIdentifier);
-    if (preset.mHasIdentifier) {
-        stream.putString(preset.mIdentifier);
-    }
-
-    stream.putOptionalPresent(preset.mHasTargetMode);
-    if (preset.mHasTargetMode) {
-        stream.putLInt((uint32_t) preset.mTargetMode);
-    }
-
-    stream.putOptionalPresent(preset.mHasAngle);
-    if (preset.mHasAngle) {
-        stream.putVector2f(preset.mAngle);
-    }
-
-    stream.putOptionalPresent(preset.mHasDistance);
-    if (preset.mHasDistance) {
-        stream.putLFloat(preset.mDistance);
-    }
+    stream.putString(preset.mIdentifier);
+    stream.putByte((unsigned char) preset.mTargetMode);
+    stream.putVector2f(preset.mAngle);
+    stream.putLFloat(preset.mDistance);
 }
 
 CameraAimAssistPreset CameraCodec::readAimAssistPreset(ReadOnlyBinaryStream &stream) {
     CameraAimAssistPreset preset;
 
-    preset.mHasIdentifier = stream.getOptionalPresent();
-    if (preset.mHasIdentifier) {
-        preset.mIdentifier = stream.getString();
-    }
-
-    preset.mHasTargetMode = stream.getOptionalPresent();
-    if (preset.mHasTargetMode) {
-        preset.mTargetMode = (int32_t) stream.getLInt();
-    }
-
-    preset.mHasAngle = stream.getOptionalPresent();
-    if (preset.mHasAngle) {
-        preset.mAngle = stream.getVector2f();
-    }
-
-    preset.mHasDistance = stream.getOptionalPresent();
-    if (preset.mHasDistance) {
-        preset.mDistance = stream.getLFloat();
-    }
+    preset.mHasIdentifier = true;
+    preset.mIdentifier = stream.getString();
+    preset.mHasTargetMode = true;
+    preset.mTargetMode = (int32_t) stream.getByte();
+    preset.mHasAngle = true;
+    preset.mAngle = stream.getVector2f();
+    preset.mHasDistance = true;
+    preset.mDistance = stream.getLFloat();
 
     return preset;
 }
