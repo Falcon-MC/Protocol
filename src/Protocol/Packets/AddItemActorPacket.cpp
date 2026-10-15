@@ -12,7 +12,7 @@ void AddItemActorPacket::write(BinaryStream &stream, const PacketCodecContext &c
     ItemCodec::writeNetworkItemStackDescriptor(stream, context, mItemInHand);
     stream.putVector3f(mPosition);
     stream.putVector3f(mMotion);
-    EntityCodec::writeEntityData(stream, mMetadata);
+    EntityCodec::writeEntityData(stream, context, mMetadata);
     stream.putBool(mFromFishing);
 }
 

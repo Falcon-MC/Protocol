@@ -16,7 +16,7 @@ void AddPlayerPacket::write(BinaryStream &stream, const PacketCodecContext &cont
     stream.putVector3f(mRotation);
     ItemCodec::writeNetworkItemStackDescriptor(stream, context, mHand);
     stream.putVarInt(mGameType);
-    EntityCodec::writeEntityData(stream, mMetadata);
+    EntityCodec::writeEntityData(stream, context, mMetadata);
     EntityCodec::writeEntityProperties(stream, mProperties);
     EntityCodec::writePlayerAbilities(stream, mAbilities);
 

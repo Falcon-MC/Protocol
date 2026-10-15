@@ -112,4 +112,10 @@ public:
     int64_t mActorUniqueId;
     bool mHasFirePosition;
     Vector3f mFirePosition;
+
+    /**
+     * Set by the sender when mExtraData is a block network ID, so it is translated for clients of another version.
+     * It is not part of the packet.
+     */
+    bool mExtraDataIsBlock = false;
 };

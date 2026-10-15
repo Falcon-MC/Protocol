@@ -19,8 +19,9 @@ int main()
         items.registerDefinition(std::make_shared<ItemDefinition>("minecraft:stone", 1, false, Tag {}));
         PacketCodecContext context(blocks, items);
 
-        // A proxy destination can send a plain stack with a zero-length extra
-        // data string. The following slots must still be read at their boundaries.
+        // A plain stack sends its user data directly instead of as a sized string:
+        // a 0 where the length would be means "no tag", then the empty can place and
+        // can break lists. The following slots must still be read at their boundaries.
         BinaryStream wire;
         wire.putUnsignedVarInt(0);
         wire.putUnsignedVarInt(36);
@@ -30,7 +31,9 @@ int main()
         wire.putBool(true);
         wire.putVarInt(123);
         wire.putUnsignedVarInt(0);
-        wire.putString("");
+        wire.putUnsignedVarInt(0);
+        wire.putLInt(0);
+        wire.putLInt(0);
         for (int i = 1; i < 36; ++i) ItemCodec::writeNetworkItemStackDescriptor(wire, context, ItemStack::air());
         InventoryCodec::writeFullContainerName(wire, FullContainerName {});
         ItemCodec::writeNetworkItemStackDescriptor(wire, context, ItemStack::air());
@@ -64,6 +67,22 @@ int main()
         try { ItemCodec::readNetworkItemStackDescriptor(bad, context); }
         catch (const std::exception&) { rejected = true; }
         require(rejected, "accepted a truncated item");
+
+        // Some servers stamp empty slots with a net id and user data too, and
+        // the slot after them has to start where the air really ends.
+        BinaryStream stampedAir;
+        stampedAir.putLShort(0);
+        stampedAir.putLShort(0);
+        stampedAir.putUnsignedVarInt(0);
+        stampedAir.putBool(true);
+        stampedAir.putVarInt(42);
+        stampedAir.putUnsignedVarInt(0);
+        stampedAir.putString(std::string(3, '\0'));
+        ItemCodec::writeNetworkItemStackDescriptor(stampedAir, context, packet.mContents[0]);
+        ReadOnlyBinaryStream stamped(stampedAir.getBuffer());
+        require(ItemCodec::readNetworkItemStackDescriptor(stamped, context).isAir(), "stamped air not air");
+        require(ItemCodec::readNetworkItemStackDescriptor(stamped, context).mCount == 7, "slot after stamped air misaligned");
+        require(stamped.getRemainingLength() == 0, "unread stamped air data");
         std::cout << "Inventory decoding regressions passed\n";
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

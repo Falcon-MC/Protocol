@@ -9,7 +9,7 @@ LevelSoundEventPacket::LevelSoundEventPacket()
 void LevelSoundEventPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
     stream.putString(mSound);
     stream.putVector3f(mPosition);
-    stream.putVarInt(mExtraData);
+    stream.putVarInt(mExtraDataIsBlock ? context.toNetworkBlockId(mExtraData) : mExtraData);
     stream.putString(mActorType);
     stream.putBool(mIsBabyMob);
     stream.putBool(mDisableRelativeVolume);

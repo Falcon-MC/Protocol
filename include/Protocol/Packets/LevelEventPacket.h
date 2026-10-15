@@ -44,4 +44,10 @@ public:
     int32_t mEventId;
     Vector3f mPosition;
     int32_t mData;
+
+    /**
+     * For ParticlePunchBlock, the hit face, which the packet packs into the top byte of the block network ID once
+     * that ID is translated for the client. mData then holds the block alone. It is not part of the packet.
+     */
+    int32_t mBlockFace = 0;
 };

@@ -109,7 +109,8 @@ namespace {
 }
 
 void ItemCodec::writeItemInstance(BinaryStream &stream, const PacketCodecContext &context, const ItemStack &item) {
-    if (item.isAir()) {
+    const int32_t networkId = item.isAir() ? 0 : context.toNetworkItemId(item.mDefinition->getRuntimeId());
+    if (networkId == 0) {
         stream.putVarInt(0);
         stream.putLShort(0);
         stream.putUnsignedVarInt((uint32_t) item.mDamage);
@@ -118,10 +119,11 @@ void ItemCodec::writeItemInstance(BinaryStream &stream, const PacketCodecContext
         return;
     }
 
-    stream.putVarInt(item.mDefinition->getRuntimeId());
+    stream.putVarInt(networkId);
     stream.putLShort((uint16_t) item.mCount);
     stream.putUnsignedVarInt((uint32_t) item.mDamage);
-    stream.putVarInt(item.mBlockDefinition == nullptr ? 0 : item.mBlockDefinition->getRuntimeId());
+    stream.putVarInt(item.mBlockDefinition == nullptr
+                     ? 0 : context.toNetworkBlockId(item.mBlockDefinition->getRuntimeId()));
 
     writeUserData(stream, item);
 }
@@ -132,18 +134,18 @@ ItemStack ItemCodec::readItemInstance(ReadOnlyBinaryStream &stream, const Packet
         stream.getLShort();
         stream.getUnsignedVarInt();
         stream.getVarInt();
-        stream.getUnsignedVarInt();
+        stream.get(stream.getUnsignedVarInt());
         return ItemStack::air();
     }
 
     ItemStack item;
-    item.mDefinition = context.getItemDefinitions().getDefinition(runtimeId);
+    item.mDefinition = context.getItemDefinitions().getDefinition(context.fromNetworkItemId(runtimeId));
     item.mCount = stream.getLShort();
     item.mDamage = (int) stream.getUnsignedVarInt();
 
     int blockRuntimeId = stream.getVarInt();
     if (blockRuntimeId != 0) {
-        item.mBlockDefinition = context.getBlockDefinitions().getDefinition(blockRuntimeId);
+        item.mBlockDefinition = context.getBlockDefinitions().getDefinition(context.fromNetworkBlockId(blockRuntimeId));
     }
 
     uint32_t userDataLength = stream.getUnsignedVarInt();
@@ -189,7 +191,8 @@ ItemStack ItemCodec::readItemInstance(ReadOnlyBinaryStream &stream, const Packet
 }
 
 void ItemCodec::writeNetworkItemStackDescriptor(BinaryStream &stream, const PacketCodecContext &context, const ItemStack &item) {
-    if (item.isAir()) {
+    const int32_t networkId = item.isAir() ? 0 : context.toNetworkItemId(item.mDefinition->getRuntimeId());
+    if (networkId == 0) {
         stream.putLShort(0);
         stream.putLShort(0);
         stream.putUnsignedVarInt((uint32_t) item.mDamage);
@@ -199,7 +202,7 @@ void ItemCodec::writeNetworkItemStackDescriptor(BinaryStream &stream, const Pack
         return;
     }
 
-    stream.putLShort((uint16_t) item.mDefinition->getRuntimeId());
+    stream.putLShort((uint16_t) networkId);
     stream.putLShort((uint16_t) item.mCount);
     stream.putUnsignedVarInt((uint32_t) item.mDamage);
 
@@ -208,7 +211,8 @@ void ItemCodec::writeNetworkItemStackDescriptor(BinaryStream &stream, const Pack
         stream.putVarInt(item.mNetId);
     }
 
-    stream.putUnsignedVarInt(item.mBlockDefinition == nullptr ? 0 : (uint32_t) item.mBlockDefinition->getRuntimeId());
+    stream.putUnsignedVarInt(item.mBlockDefinition == nullptr
+                             ? 0 : (uint32_t) context.toNetworkBlockId(item.mBlockDefinition->getRuntimeId()));
 
     if (item.mDirectUserData) {
         writeDirectUserData(stream, item);
@@ -229,7 +233,8 @@ void ItemCodec::writeRequestItemDescriptor(BinaryStream &stream, const PacketCod
     }
 
     stream.putLShort((uint16_t) item.mCount);
-    stream.putUnsignedVarInt(air || item.mBlockDefinition == nullptr ? 0 : (uint32_t) item.mBlockDefinition->getRuntimeId());
+    stream.putUnsignedVarInt(air || item.mBlockDefinition == nullptr
+                             ? 0 : (uint32_t) context.toNetworkBlockId(item.mBlockDefinition->getRuntimeId()));
 
     if (air) {
         stream.putString("");
@@ -281,7 +286,7 @@ ItemStack ItemCodec::readRequestItemDescriptor(ReadOnlyBinaryStream &stream, con
 
     int32_t blockRuntimeId = (int32_t) stream.getUnsignedVarInt();
     if (blockRuntimeId != 0) {
-        item.mBlockDefinition = context.getBlockDefinitions().getDefinition(blockRuntimeId);
+        item.mBlockDefinition = context.getBlockDefinitions().getDefinition(context.fromNetworkBlockId(blockRuntimeId));
     }
 
     uint32_t userDataLength = stream.getUnsignedVarInt();
@@ -328,14 +333,16 @@ ItemStack ItemCodec::readNetworkItemStackDescriptor(ReadOnlyBinaryStream &stream
     if (runtimeId == 0) {
         stream.getLShort();
         stream.getUnsignedVarInt();
-        stream.getBool();
+        if (stream.getBool()) {
+            stream.getVarInt();
+        }
         stream.getUnsignedVarInt();
-        stream.getUnsignedVarInt();
+        stream.get(stream.getUnsignedVarInt());
         return ItemStack::air();
     }
 
     ItemStack item;
-    item.mDefinition = context.getItemDefinitions().getDefinition(runtimeId);
+    item.mDefinition = context.getItemDefinitions().getDefinition(context.fromNetworkItemId(runtimeId));
     item.mCount = stream.getLShort();
     item.mDamage = (int) stream.getUnsignedVarInt();
 
@@ -346,7 +353,7 @@ ItemStack ItemCodec::readNetworkItemStackDescriptor(ReadOnlyBinaryStream &stream
 
     int blockRuntimeId = (int) stream.getUnsignedVarInt();
     if (blockRuntimeId != 0) {
-        item.mBlockDefinition = context.getBlockDefinitions().getDefinition(blockRuntimeId);
+        item.mBlockDefinition = context.getBlockDefinitions().getDefinition(context.fromNetworkBlockId(blockRuntimeId));
     }
 
     uint32_t userDataLength = stream.getUnsignedVarInt();
