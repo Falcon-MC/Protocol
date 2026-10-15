@@ -42,6 +42,7 @@ enum class EnvironmentAttributeValueType {
     Bool,
     Float,
     Color,
+    String,
 };
 
 class EnvironmentAttributeValue {
@@ -49,9 +50,11 @@ public:
     EnvironmentAttributeValueType mType = EnvironmentAttributeValueType::Bool;
 
     bool mBoolValue = false;
+    bool mHasBoolOperation = false;
     int32_t mBoolOperation = 0;
 
     float mFloatValue = 0.0f;
+    bool mHasFloatOperation = false;
     int32_t mFloatOperation = 0;
     bool mHasConstraintMin = false;
     float mConstraintMin = 0.0f;
@@ -59,7 +62,13 @@ public:
     float mConstraintMax = 0.0f;
 
     Color255RGBA mColorValue;
+    int32_t mColorArgb = 0;
+    bool mHasColorOperation = false;
     int32_t mColorOperation = 0;
+
+    std::string mStringValue;
+    bool mHasStringOperation = false;
+    int32_t mStringOperation = 0;
 };
 
 enum class NoiseAlignmentType {

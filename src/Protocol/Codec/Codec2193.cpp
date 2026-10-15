@@ -1,11 +1,12 @@
 #include "Protocol/Codec/Codec2193.h"
 
 #include "Protocol/MinecraftPackets.h"
+#include "Protocol/Codec/Codec2225.h"
 
 namespace Codec2193 {
 
     ProtocolCapabilities capabilities() {
-        ProtocolCapabilities capabilities;
+        ProtocolCapabilities capabilities = Codec2225::capabilities();
         capabilities.mProtocolVersion = 2193;
         capabilities.mAttributePayloads = false;
         capabilities.mPassengerOfBlock = false;
@@ -23,6 +24,7 @@ namespace Codec2193 {
     }
 
     void removeLaterPackets(ProtocolCodec &codec) {
+        Codec2225::removeLaterPackets(codec);
         codec.removePacket(MinecraftPacketIds::ClientboundMatchmakingState);
         codec.removePacket(MinecraftPacketIds::ServerboundStonecutterSetRecipe);
         codec.removePacket(MinecraftPacketIds::ClientboundStonecutterSetRecipe);

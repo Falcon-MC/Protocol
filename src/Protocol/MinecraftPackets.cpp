@@ -2,6 +2,7 @@
 
 #include "Protocol/Codec/ProtocolCodecRegistry.h"
 
+#include "Protocol/Packets/ChatPacket.h"
 #include "Protocol/Packets/ActorEventPacket.h"
 #include "Protocol/Packets/ActorPickRequestPacket.h"
 #include "Protocol/Packets/AddActorPacket.h"
@@ -494,6 +495,7 @@ void MinecraftPackets::registerVanillaPackets(ProtocolCodec &codec) {
     codec.registerPacket<SimulationTypePacket>();
     codec.registerPacket<SpawnExperienceOrbPacket>();
     codec.registerPacket<SpawnParticleEffectPacket>();
+    codec.registerPacket<ChatPacket>();
     codec.registerPacket<StartGamePacket>();
     codec.registerPacket<StopSoundPacket>();
     codec.registerPacket<StructureBlockUpdatePacket>();

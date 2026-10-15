@@ -482,6 +482,8 @@ const char *toString(MinecraftPacketIds id) {
             return "ClientboundPlayAudioContent";
         case MinecraftPacketIds::ServerboundRegisterAudioContent:
             return "ServerboundRegisterAudioContent";
+        case MinecraftPacketIds::Chat:
+            return "Chat";
         default:
             return "Unknown";
     }

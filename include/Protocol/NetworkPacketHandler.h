@@ -1,6 +1,7 @@
 #pragma once
 
 class NetworkIdentifier;
+class ChatPacket;
 
 class AddBehaviorTreePacket;
 class AddActorPacket;
@@ -756,5 +757,7 @@ public:
     virtual void handle(const NetworkIdentifier &, const VideoStreamConnectPacket &) {}
 
     virtual void handle(const NetworkIdentifier &, const VoxelShapesPacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const ChatPacket &) {}
 
 };

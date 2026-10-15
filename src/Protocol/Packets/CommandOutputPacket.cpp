@@ -25,6 +25,12 @@ void CommandOutputPacket::write(BinaryStream &stream, const PacketCodecContext &
         stream.putArrayLength((uint32_t) message.mParameters.size());
         for (const std::string &parameter: message.mParameters)
             stream.putString(parameter);
+
+        if (context.getCapabilities().mCommandOutputRawMessage) {
+            stream.putBool(message.mHasRawMessage);
+            if (message.mHasRawMessage)
+                stream.putString(message.mRawMessage);
+        }
     }
 
     stream.putOptionalPresent(mHasData);
@@ -58,6 +64,12 @@ void CommandOutputPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecCo
         message.mParameters.reserve(parameterCount);
         for (uint32_t j = 0; j < parameterCount; j++)
             message.mParameters.push_back(stream.getString());
+
+        if (context.getCapabilities().mCommandOutputRawMessage) {
+            message.mHasRawMessage = stream.getBool();
+            if (message.mHasRawMessage)
+                message.mRawMessage = stream.getString();
+        }
 
         mMessages.push_back(std::move(message));
     }

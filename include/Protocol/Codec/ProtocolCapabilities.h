@@ -22,6 +22,12 @@ struct ProtocolCapabilities {
     bool mSubChunkHeightMapRows = true;
     bool mDiagnosticsActorPosition = true;
 
+    bool mManagedChat = true;
+    bool mCommandOutputRawMessage = true;
+    bool mCommandBlockRawMessage = true;
+    bool mKeepStructureVoid = true;
+    bool mTypedAttributeValues = true;
+
     bool mAttributePayloads = true;
     bool mPassengerOfBlock = true;
     bool mAnimateHand = true;

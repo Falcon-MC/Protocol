@@ -251,7 +251,8 @@ enum class MinecraftPacketIds : int {
     SetPassengerOfBlock = 357,
     ServerboundCursorItemDrag = 358,
     ClientboundPlayAudioContent = 359,
-    ServerboundRegisterAudioContent = 360
+    ServerboundRegisterAudioContent = 360,
+    Chat = 361
 };
 
 const char *toString(MinecraftPacketIds id);
