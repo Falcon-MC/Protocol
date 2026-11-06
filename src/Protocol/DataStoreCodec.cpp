@@ -38,7 +38,7 @@ DataStoreScalar DataStoreCodec::readScalar(ReadOnlyBinaryStream &stream) {
             value.mStringValue = stream.getString();
             break;
         case DataStoreScalarType::StringArray: {
-            const uint32_t count = stream.getUnsignedVarInt();
+            const uint32_t count = stream.getArrayLength();
             value.mStringArrayValue.reserve(count);
             for (uint32_t i = 0; i < count; i++) {
                 value.mStringArrayValue.push_back(stream.getString());
@@ -79,7 +79,12 @@ void DataStoreCodec::writeChangeValue(BinaryStream &stream, const DataStoreChang
     }
 }
 
-DataStoreChangeValue DataStoreCodec::readChangeValue(ReadOnlyBinaryStream &stream) {
+DataStoreChangeValue DataStoreCodec::readChangeValue(ReadOnlyBinaryStream &stream, int depth) {
+    // a map value nests another change value, so a crafted chain would recurse without this bound
+    static const int MAX_DEPTH = 16;
+    if (depth > MAX_DEPTH)
+        throw BinaryDataException("Data store change value is nested too deeply");
+
     DataStoreChangeValue value;
     int32_t type = (int32_t) stream.getLInt();
     switch (type) {
@@ -100,11 +105,11 @@ DataStoreChangeValue DataStoreCodec::readChangeValue(ReadOnlyBinaryStream &strea
             break;
         case 6: {
             value.mType = DataStoreChangeValueType::Map;
-            uint32_t size = stream.getUnsignedVarInt();
+            uint32_t size = stream.getArrayLength();
             value.mMapValue.reserve(size);
             for (uint32_t i = 0; i < size; i++) {
                 std::string key = stream.getString();
-                value.mMapValue.emplace_back(std::move(key), readChangeValue(stream));
+                value.mMapValue.emplace_back(std::move(key), readChangeValue(stream, depth + 1));
             }
             break;
         }
