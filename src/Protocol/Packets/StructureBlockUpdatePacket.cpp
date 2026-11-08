@@ -37,7 +37,7 @@ void StructureBlockUpdatePacket::write(BinaryStream &stream, const PacketCodecCo
     writeEditorData(stream, mEditorData);
     stream.putBool(mPowered);
     stream.putBool(mWaterlogged);
-    if (context.getCapabilities().mKeepStructureVoid)
+    if (context.getCapabilities().mStructureKeepVoid)
         stream.putBool(mKeepStructureVoid);
 }
 
@@ -46,7 +46,7 @@ void StructureBlockUpdatePacket::read(ReadOnlyBinaryStream &stream, const Packet
     mEditorData = readEditorData(stream);
     mPowered = stream.getBool();
     mWaterlogged = stream.getBool();
-    mKeepStructureVoid = context.getCapabilities().mKeepStructureVoid && stream.getBool();
+    mKeepStructureVoid = context.getCapabilities().mStructureKeepVoid && stream.getBool();
 }
 
 void StructureBlockUpdatePacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {

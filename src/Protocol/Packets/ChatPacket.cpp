@@ -2,18 +2,64 @@
 
 #include "Protocol/NetworkPacketHandler.h"
 
+namespace {
+
+    void writePart(BinaryStream &stream, const ChatFormatting::Part &part) {
+        stream.putOptionalPresent(part.mPresent);
+        if (part.mPresent)
+            stream.putString(part.mValue);
+    }
+
+    ChatFormatting::Part readPart(ReadOnlyBinaryStream &stream) {
+        ChatFormatting::Part part;
+        part.mPresent = stream.getOptionalPresent();
+        if (part.mPresent)
+            part.mValue = stream.getString();
+        return part;
+    }
+
+}
+
+ChatPacket::ChatPacket() = default;
+
 void ChatPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
-    mSignedChat.write(stream);
-    stream.putBool(mHasFormatting);
-    if (mHasFormatting)
-        mFormatting.write(stream);
+    // the signed block is relayed byte for byte: receivers check the signature over it
+    stream.putString(mSignedChat.mKeyId);
+    stream.putString(mSignedChat.mSenderId);
+    stream.putString(mSignedChat.mRoomId);
+    stream.putString(mSignedChat.mMessageId);
+    stream.putString(mSignedChat.mScanText);
+    stream.putString(mSignedChat.mRedactedText);
+    stream.putString(mSignedChat.mSignature);
+
+    stream.putOptionalPresent(mHasFormatting);
+    if (!mHasFormatting)
+        return;
+
+    writePart(stream, mFormatting.mNamePrefix);
+    writePart(stream, mFormatting.mNamePostfix);
+    writePart(stream, mFormatting.mMessagePrefix);
+    writePart(stream, mFormatting.mMessagePostfix);
 }
 
 void ChatPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
-    mSignedChat.read(stream);
-    mHasFormatting = stream.getBool();
-    if (mHasFormatting)
-        mFormatting.read(stream);
+    mSignedChat.mKeyId = stream.getString();
+    mSignedChat.mSenderId = stream.getString();
+    mSignedChat.mRoomId = stream.getString();
+    mSignedChat.mMessageId = stream.getString();
+    mSignedChat.mScanText = stream.getString();
+    mSignedChat.mRedactedText = stream.getString();
+    mSignedChat.mSignature = stream.getString();
+
+    mFormatting = ChatFormatting();
+    mHasFormatting = stream.getOptionalPresent();
+    if (!mHasFormatting)
+        return;
+
+    mFormatting.mNamePrefix = readPart(stream);
+    mFormatting.mNamePostfix = readPart(stream);
+    mFormatting.mMessagePrefix = readPart(stream);
+    mFormatting.mMessagePostfix = readPart(stream);
 }
 
 void ChatPacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {

@@ -95,12 +95,14 @@ struct ServerConfigurationJoinInfo {
     ClientStoreEntrypointConfiguration mClientStoreEntrypoint;
     bool mHasPresenceConfiguration = false;
     PresenceConfiguration mPresenceConfiguration;
-    bool mHasManagedChatJoinInfo = false;
-    ManagedChatJoinInfo mManagedChatJoinInfo;
 
-    void write(BinaryStream &stream, bool managedChat = true) const;
+    // tells a joining client chat goes through mojang managed chat
+    bool mHasManagedChat = false;
+    ManagedChatJoinInfo mManagedChat;
 
-    void read(ReadOnlyBinaryStream &stream, bool managedChat = true);
+    void write(BinaryStream &stream, bool managedChat) const;
+
+    void read(ReadOnlyBinaryStream &stream, bool managedChat);
 };
 
 struct GameRuleData {

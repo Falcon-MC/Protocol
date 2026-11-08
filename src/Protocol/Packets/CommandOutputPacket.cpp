@@ -17,6 +17,7 @@ void CommandOutputPacket::write(BinaryStream &stream, const PacketCodecContext &
     stream.putString(OUTPUT_TYPE_NAMES[(size_t) mType]);
     stream.putLInt((uint32_t) mSuccessCount);
 
+    const bool rawMessage = context.getCapabilities().mCommandRawMessage;
     stream.putArrayLength((uint32_t) mMessages.size());
     for (const CommandOutputMessage &message: mMessages) {
         stream.putString(message.mMessageId);
@@ -26,11 +27,11 @@ void CommandOutputPacket::write(BinaryStream &stream, const PacketCodecContext &
         for (const std::string &parameter: message.mParameters)
             stream.putString(parameter);
 
-        if (context.getCapabilities().mCommandOutputRawMessage) {
-            stream.putBool(message.mHasRawMessage);
-            if (message.mHasRawMessage)
-                stream.putString(message.mRawMessage);
-        }
+        if (!rawMessage)
+            continue;
+        stream.putOptionalPresent(message.mHasRawMessage);
+        if (message.mHasRawMessage)
+            stream.putString(message.mRawMessage);
     }
 
     stream.putOptionalPresent(mHasData);
@@ -51,6 +52,7 @@ void CommandOutputPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecCo
 
     mSuccessCount = (int32_t) stream.getLInt();
 
+    const bool rawMessage = context.getCapabilities().mCommandRawMessage;
     const uint32_t messageCount = stream.getArrayLength();
     mMessages.clear();
     mMessages.reserve(messageCount);
@@ -65,11 +67,9 @@ void CommandOutputPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecCo
         for (uint32_t j = 0; j < parameterCount; j++)
             message.mParameters.push_back(stream.getString());
 
-        if (context.getCapabilities().mCommandOutputRawMessage) {
-            message.mHasRawMessage = stream.getBool();
-            if (message.mHasRawMessage)
-                message.mRawMessage = stream.getString();
-        }
+        message.mHasRawMessage = rawMessage && stream.getOptionalPresent();
+        if (message.mHasRawMessage)
+            message.mRawMessage = stream.getString();
 
         mMessages.push_back(std::move(message));
     }

@@ -15,6 +15,9 @@ namespace {
     const std::array<std::string, 5> COLOR_OPERATIONS = {
         "override", "alpha_blend", "add", "subtract", "multiply"
     };
+    const std::array<std::string, 1> STRING_OPERATIONS = {
+        "override"
+    };
 
     int32_t indexOf(const std::string &value, const std::string *values, size_t count) {
         for (size_t i = 0; i < count; i++) {
@@ -48,23 +51,17 @@ namespace {
         return weight;
     }
 
-    void writeSettings(BinaryStream &stream, const PacketCodecContext &context, const AttributeLayerSettings &settings) {
+    void writeSettings(BinaryStream &stream, const AttributeLayerSettings &settings) {
         stream.putLInt((uint32_t) settings.mPriority);
-        if (context.getCapabilities().mTypedAttributeValues)
-            stream.putLFloat(settings.mWeight.mFloatValue);
-        else
-            writeWeight(stream, settings.mWeight);
+        writeWeight(stream, settings.mWeight);
         stream.putBool(settings.mEnabled);
         stream.putBool(settings.mTransitionsPaused);
     }
 
-    AttributeLayerSettings readSettings(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
+    AttributeLayerSettings readSettings(ReadOnlyBinaryStream &stream) {
         AttributeLayerSettings settings;
         settings.mPriority = (int32_t) stream.getLInt();
-        if (context.getCapabilities().mTypedAttributeValues)
-            settings.mWeight.mFloatValue = stream.getLFloat();
-        else
-            settings.mWeight = readWeight(stream);
+        settings.mWeight = readWeight(stream);
         settings.mEnabled = stream.getBool();
         settings.mTransitionsPaused = stream.getBool();
         return settings;
@@ -97,45 +94,7 @@ namespace {
         return color;
     }
 
-    void writeAttributeValue(BinaryStream &stream, const EnvironmentAttributeValue &value, bool typed = false) {
-        if (typed) {
-            stream.putUnsignedVarInt((uint32_t) value.mType);
-            switch (value.mType) {
-                case EnvironmentAttributeValueType::Bool:
-                    stream.putBool(value.mBoolValue);
-                    stream.putBool(value.mHasBoolOperation);
-                    if (value.mHasBoolOperation)
-                        stream.putLInt((uint32_t) value.mBoolOperation);
-                    break;
-                case EnvironmentAttributeValueType::Float:
-                    stream.putLFloat(value.mFloatValue);
-                    stream.putBool(value.mHasFloatOperation);
-                    if (value.mHasFloatOperation)
-                        stream.putLInt((uint32_t) value.mFloatOperation);
-                    stream.putBool(value.mHasConstraintMin);
-                    if (value.mHasConstraintMin)
-                        stream.putLFloat(value.mConstraintMin);
-                    stream.putBool(value.mHasConstraintMax);
-                    if (value.mHasConstraintMax)
-                        stream.putLFloat(value.mConstraintMax);
-                    break;
-                case EnvironmentAttributeValueType::Color:
-                    stream.putLInt((uint32_t) value.mColorArgb);
-                    stream.putBool(value.mHasColorOperation);
-                    if (value.mHasColorOperation)
-                        stream.putLInt((uint32_t) value.mColorOperation);
-                    break;
-                case EnvironmentAttributeValueType::String:
-                    stream.putString(value.mStringValue);
-                    stream.putBool(value.mHasStringOperation);
-                    if (value.mHasStringOperation)
-                        stream.putLInt((uint32_t) value.mStringOperation);
-                    break;
-                default:
-                    throw BinaryDataException("Unknown attribute data type");
-            }
-            return;
-        }
+    void writeAttributeValue(BinaryStream &stream, const EnvironmentAttributeValue &value) {
         switch (value.mType) {
             case EnvironmentAttributeValueType::Bool:
                 stream.putUnsignedVarInt(0);
@@ -160,52 +119,17 @@ namespace {
                 writeColor255(stream, value.mColorValue);
                 stream.putString(COLOR_OPERATIONS[(size_t) value.mColorOperation]);
                 break;
-            default:
-                throw BinaryDataException("Unsupported attribute data type for this protocol");
+            case EnvironmentAttributeValueType::String:
+                stream.putUnsignedVarInt(3);
+                stream.putString(value.mStringValue);
+                stream.putString(STRING_OPERATIONS[(size_t) value.mStringOperation]);
+                break;
         }
     }
 
-    EnvironmentAttributeValue readAttributeValue(ReadOnlyBinaryStream &stream, bool typed = false) {
+    EnvironmentAttributeValue readAttributeValue(ReadOnlyBinaryStream &stream) {
         EnvironmentAttributeValue value;
         uint32_t type = stream.getUnsignedVarInt();
-        if (typed) {
-            value.mType = (EnvironmentAttributeValueType) type;
-            switch (value.mType) {
-                case EnvironmentAttributeValueType::Bool:
-                    value.mBoolValue = stream.getBool();
-                    value.mHasBoolOperation = stream.getBool();
-                    if (value.mHasBoolOperation)
-                        value.mBoolOperation = (int32_t) stream.getLInt();
-                    break;
-                case EnvironmentAttributeValueType::Float:
-                    value.mFloatValue = stream.getLFloat();
-                    value.mHasFloatOperation = stream.getBool();
-                    if (value.mHasFloatOperation)
-                        value.mFloatOperation = (int32_t) stream.getLInt();
-                    value.mHasConstraintMin = stream.getBool();
-                    if (value.mHasConstraintMin)
-                        value.mConstraintMin = stream.getLFloat();
-                    value.mHasConstraintMax = stream.getBool();
-                    if (value.mHasConstraintMax)
-                        value.mConstraintMax = stream.getLFloat();
-                    break;
-                case EnvironmentAttributeValueType::Color:
-                    value.mColorArgb = (int32_t) stream.getLInt();
-                    value.mHasColorOperation = stream.getBool();
-                    if (value.mHasColorOperation)
-                        value.mColorOperation = (int32_t) stream.getLInt();
-                    break;
-                case EnvironmentAttributeValueType::String:
-                    value.mStringValue = stream.getString();
-                    value.mHasStringOperation = stream.getBool();
-                    if (value.mHasStringOperation)
-                        value.mStringOperation = (int32_t) stream.getLInt();
-                    break;
-                default:
-                    throw BinaryDataException("Unknown attribute data type");
-            }
-            return value;
-        }
         switch (type) {
             case 0:
                 value.mType = EnvironmentAttributeValueType::Bool;
@@ -229,6 +153,12 @@ namespace {
                 value.mType = EnvironmentAttributeValueType::Color;
                 value.mColorValue = readColor255(stream);
                 value.mColorOperation = indexOf(stream.getString(), COLOR_OPERATIONS.data(), COLOR_OPERATIONS.size());
+                break;
+            case 3:
+                value.mType = EnvironmentAttributeValueType::String;
+                value.mStringValue = stream.getString();
+                value.mStringOperation = indexOf(stream.getString(), STRING_OPERATIONS.data(),
+                                                 STRING_OPERATIONS.size());
                 break;
         }
         return value;
@@ -314,17 +244,17 @@ namespace {
         return attribute;
     }
 
-    void writePayloadEnvironmentAttribute(BinaryStream &stream, const EnvironmentAttributeData &attribute, bool typed) {
+    void writePayloadEnvironmentAttribute(BinaryStream &stream, const EnvironmentAttributeData &attribute) {
         stream.putString(attribute.mAttributeName);
         stream.putUnsignedVarInt((uint32_t) attribute.mPayloadType);
         switch (attribute.mPayloadType) {
             case EnvironmentAttributePayloadType::Constant:
-                writeAttributeValue(stream, attribute.mAttribute, typed);
+                writeAttributeValue(stream, attribute.mAttribute);
                 break;
             case EnvironmentAttributePayloadType::Transition: {
                 const AttributeTransitionSettings &settings = attribute.mTransitionSettings;
-                writeAttributeValue(stream, attribute.mFrom, typed);
-                writeAttributeValue(stream, attribute.mTo, typed);
+                writeAttributeValue(stream, attribute.mFrom);
+                writeAttributeValue(stream, attribute.mTo);
                 stream.putUnsignedVarInt(settings.mTotalTransitionTicks);
                 stream.putUnsignedVarInt(settings.mCurrentTransitionTicks);
                 stream.putVarInt((int32_t) settings.mEasing);
@@ -333,8 +263,8 @@ namespace {
             }
             case EnvironmentAttributePayloadType::NoiseTransition: {
                 const AttributeNoiseTransitionSettings &settings = attribute.mNoiseTransitionSettings;
-                writeAttributeValue(stream, attribute.mFrom, typed);
-                writeAttributeValue(stream, attribute.mTo, typed);
+                writeAttributeValue(stream, attribute.mFrom);
+                writeAttributeValue(stream, attribute.mTo);
                 stream.putUnsignedVarInt(settings.mTotalTransitionTicks);
                 stream.putUnsignedVarInt(settings.mCurrentTransitionTicks);
                 stream.putVarInt((int32_t) settings.mEasing);
@@ -348,18 +278,18 @@ namespace {
         }
     }
 
-    EnvironmentAttributeData readPayloadEnvironmentAttribute(ReadOnlyBinaryStream &stream, bool typed) {
+    EnvironmentAttributeData readPayloadEnvironmentAttribute(ReadOnlyBinaryStream &stream) {
         EnvironmentAttributeData attribute;
         attribute.mAttributeName = stream.getString();
         attribute.mPayloadType = (EnvironmentAttributePayloadType) stream.getUnsignedVarInt();
         switch (attribute.mPayloadType) {
             case EnvironmentAttributePayloadType::Constant:
-                attribute.mAttribute = readAttributeValue(stream, typed);
+                attribute.mAttribute = readAttributeValue(stream);
                 break;
             case EnvironmentAttributePayloadType::Transition: {
                 AttributeTransitionSettings &settings = attribute.mTransitionSettings;
-                attribute.mFrom = readAttributeValue(stream, typed);
-                attribute.mTo = readAttributeValue(stream, typed);
+                attribute.mFrom = readAttributeValue(stream);
+                attribute.mTo = readAttributeValue(stream);
                 settings.mTotalTransitionTicks = stream.getUnsignedVarInt();
                 settings.mCurrentTransitionTicks = stream.getUnsignedVarInt();
                 settings.mEasing = (CameraEase) stream.getVarInt();
@@ -368,8 +298,8 @@ namespace {
             }
             case EnvironmentAttributePayloadType::NoiseTransition: {
                 AttributeNoiseTransitionSettings &settings = attribute.mNoiseTransitionSettings;
-                attribute.mFrom = readAttributeValue(stream, typed);
-                attribute.mTo = readAttributeValue(stream, typed);
+                attribute.mFrom = readAttributeValue(stream);
+                attribute.mTo = readAttributeValue(stream);
                 settings.mTotalTransitionTicks = stream.getUnsignedVarInt();
                 settings.mCurrentTransitionTicks = stream.getUnsignedVarInt();
                 settings.mEasing = (CameraEase) stream.getVarInt();
@@ -390,7 +320,7 @@ namespace {
                                    const EnvironmentAttributeData &attribute) {
         const ProtocolCapabilities &capabilities = context.getCapabilities();
         if (capabilities.mAttributePayloads)
-            writePayloadEnvironmentAttribute(stream, attribute, capabilities.mTypedAttributeValues);
+            writePayloadEnvironmentAttribute(stream, attribute);
         else
             writeLegacyEnvironmentAttribute(stream, attribute, capabilities.mAttributeNoiseAlignment);
     }
@@ -398,7 +328,7 @@ namespace {
     EnvironmentAttributeData readEnvironmentAttribute(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
         const ProtocolCapabilities &capabilities = context.getCapabilities();
         if (capabilities.mAttributePayloads)
-            return readPayloadEnvironmentAttribute(stream, capabilities.mTypedAttributeValues);
+            return readPayloadEnvironmentAttribute(stream);
         return readLegacyEnvironmentAttribute(stream, capabilities.mAttributeNoiseAlignment);
     }
 
@@ -415,7 +345,7 @@ void ClientboundAttributeLayerSyncPacket::write(BinaryStream &stream, const Pack
             for (const AttributeLayerData &layer: mData.mLayers) {
                 stream.putString(layer.mLayerName);
                 stream.putVarInt(layer.mDimension);
-                writeSettings(stream, context, layer.mSettings);
+                writeSettings(stream, layer.mSettings);
                 stream.putArrayLength((uint32_t) layer.mAttributes.size());
                 for (const EnvironmentAttributeData &attribute: layer.mAttributes) {
                     writeEnvironmentAttribute(stream, context, attribute);
@@ -425,7 +355,7 @@ void ClientboundAttributeLayerSyncPacket::write(BinaryStream &stream, const Pack
         case AttributeLayerSyncPayloadType::UpdateAttributeLayerSettings:
             stream.putString(mData.mLayerName);
             stream.putVarInt(mData.mDimension);
-            writeSettings(stream, context, mData.mSettings);
+            writeSettings(stream, mData.mSettings);
             break;
         case AttributeLayerSyncPayloadType::UpdateEnvironmentAttributes:
             stream.putString(mData.mLayerName);
@@ -457,7 +387,7 @@ void ClientboundAttributeLayerSyncPacket::read(ReadOnlyBinaryStream &stream, con
                 AttributeLayerData layer;
                 layer.mLayerName = stream.getString();
                 layer.mDimension = stream.getVarInt();
-                layer.mSettings = readSettings(stream, context);
+                layer.mSettings = readSettings(stream);
                 uint32_t attributeCount = stream.getArrayLength();
                 layer.mAttributes.reserve(attributeCount);
                 for (uint32_t j = 0; j < attributeCount; j++) {
@@ -470,7 +400,7 @@ void ClientboundAttributeLayerSyncPacket::read(ReadOnlyBinaryStream &stream, con
         case AttributeLayerSyncPayloadType::UpdateAttributeLayerSettings:
             mData.mLayerName = stream.getString();
             mData.mDimension = stream.getVarInt();
-            mData.mSettings = readSettings(stream, context);
+            mData.mSettings = readSettings(stream);
             break;
         case AttributeLayerSyncPayloadType::UpdateEnvironmentAttributes: {
             mData.mLayerName = stream.getString();

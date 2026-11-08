@@ -23,7 +23,7 @@ void CommandBlockUpdatePacket::write(BinaryStream &stream, const PacketCodecCont
     stream.putBool(mOutputTracked);
     stream.putLInt(mTickDelay);
     stream.putBool(mExecutingOnFirstTick);
-    if (context.getCapabilities().mCommandBlockRawMessage)
+    if (context.getCapabilities().mCommandRawMessage)
         stream.putBool(mLastOutputIsRawMessage);
 }
 
@@ -46,7 +46,7 @@ void CommandBlockUpdatePacket::read(ReadOnlyBinaryStream &stream, const PacketCo
     mOutputTracked = stream.getBool();
     mTickDelay = stream.getLInt();
     mExecutingOnFirstTick = stream.getBool();
-    mLastOutputIsRawMessage = context.getCapabilities().mCommandBlockRawMessage && stream.getBool();
+    mLastOutputIsRawMessage = context.getCapabilities().mCommandRawMessage && stream.getBool();
 }
 
 void CommandBlockUpdatePacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {

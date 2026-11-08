@@ -18,4 +18,7 @@ public:
     float mRotation = 0.0f;
     float mRotationLimit = 0.0f;
     PassengerOfBlockEmoteType mEmoteType = PassengerOfBlockEmoteType::Standing;
+
+    // hashed serialized id of the block the passenger sits on
+    uint64_t mBlockType = 0;
 };

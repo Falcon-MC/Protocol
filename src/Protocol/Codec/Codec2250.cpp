@@ -1,17 +1,15 @@
-#include "Protocol/Codec/Codec2235.h"
+#include "Protocol/Codec/Codec2250.h"
 
 #include "Protocol/MinecraftPackets.h"
 
-namespace Codec2235 {
+namespace Codec2250 {
 
     std::shared_ptr<const ProtocolCodec> create() {
         ProtocolCapabilities capabilities;
-        capabilities.mProtocolVersion = 2235;
+        capabilities.mProtocolVersion = 2250;
 
         std::shared_ptr<ProtocolCodec> codec = std::make_shared<ProtocolCodec>(capabilities);
         MinecraftPackets::registerVanillaPackets(*codec);
-        codec->removePacket(MinecraftPacketIds::AddVolumeEntity);
-        codec->removePacket(MinecraftPacketIds::RemoveVolumeEntity);
         return codec;
     }
 

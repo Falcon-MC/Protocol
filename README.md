@@ -11,7 +11,7 @@
 
 <p align="center">
 	<img src="https://img.shields.io/badge/minecraft-v1.26.70%20(Bedrock)-56383E" alt="Minecraft">
-	<img src="https://img.shields.io/badge/protocol-2235-blue" alt="Protocol">
+	<img src="https://img.shields.io/badge/protocol-2250-blue" alt="Protocol">
 	<img src="https://img.shields.io/badge/language-C%2B%2B17-00599C" alt="C++17">
 </p>
 

@@ -1,11 +1,9 @@
 #pragma once
 
-#include "Core/Utility/BinaryStream.h"
-#include "Core/Utility/ReadOnlyBinaryStream.h"
-
 #include <string>
 
-struct SignedChat {
+class SignedChat {
+public:
     std::string mKeyId;
     std::string mSenderId;
     std::string mRoomId;
@@ -13,21 +11,18 @@ struct SignedChat {
     std::string mScanText;
     std::string mRedactedText;
     std::string mSignature;
-
-    void write(BinaryStream &stream) const;
-    void read(ReadOnlyBinaryStream &stream);
 };
 
-struct ChatFormatting {
-    bool mHasNamePrefix = false;
-    std::string mNamePrefix;
-    bool mHasNamePostfix = false;
-    std::string mNamePostfix;
-    bool mHasMessagePrefix = false;
-    std::string mMessagePrefix;
-    bool mHasMessagePostfix = false;
-    std::string mMessagePostfix;
+// server decoration around the signed name and message; outside the signature
+class ChatFormatting {
+public:
+    struct Part {
+        bool mPresent = false;
+        std::string mValue;
+    };
 
-    void write(BinaryStream &stream) const;
-    void read(ReadOnlyBinaryStream &stream);
+    Part mNamePrefix;
+    Part mNamePostfix;
+    Part mMessagePrefix;
+    Part mMessagePostfix;
 };

@@ -23,12 +23,17 @@ void PlaySoundPacket::write(BinaryStream &stream, const PacketCodecContext &cont
     if (mHasServerSoundHandle)
         stream.putLLong((uint64_t) mServerSoundHandle);
 
-    if (!rangeAndPosition)
-        return;
+    if (rangeAndPosition) {
+        stream.putOptionalPresent(mHasPlaybackPosition);
+        if (mHasPlaybackPosition)
+            stream.putLFloat(mPlaybackPositionSeconds);
+    }
 
-    stream.putOptionalPresent(mHasPlaybackPosition);
-    if (mHasPlaybackPosition)
-        stream.putLFloat(mPlaybackPositionSeconds);
+    if (context.getCapabilities().mPlaySoundStartDelay) {
+        stream.putOptionalPresent(mHasStartDelay);
+        if (mHasStartDelay)
+            stream.putLFloat(mStartDelaySeconds);
+    }
 }
 
 void PlaySoundPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
@@ -50,12 +55,13 @@ void PlaySoundPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContex
     if (mHasServerSoundHandle)
         mServerSoundHandle = (int64_t) stream.getLLong();
 
-    if (!rangeAndPosition)
-        return;
-
-    mHasPlaybackPosition = stream.getOptionalPresent();
+    mHasPlaybackPosition = rangeAndPosition && stream.getOptionalPresent();
     if (mHasPlaybackPosition)
         mPlaybackPositionSeconds = stream.getLFloat();
+
+    mHasStartDelay = context.getCapabilities().mPlaySoundStartDelay && stream.getOptionalPresent();
+    if (mHasStartDelay)
+        mStartDelaySeconds = stream.getLFloat();
 }
 
 void PlaySoundPacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {

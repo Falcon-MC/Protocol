@@ -17,10 +17,11 @@ void ServerConfigurationJoinInfo::write(BinaryStream &stream, bool managedChat) 
         if (mPresenceConfiguration.mHasRichPresenceId)
             stream.putString(mPresenceConfiguration.mRichPresenceId);
     }
+
     if (managedChat) {
-        stream.putBool(mHasManagedChatJoinInfo);
-        if (mHasManagedChatJoinInfo)
-            stream.putBool(mManagedChatJoinInfo.mEnabled);
+        stream.putOptionalPresent(mHasManagedChat);
+        if (mHasManagedChat)
+            stream.putBool(mManagedChat.mEnabled);
     }
 }
 
@@ -41,9 +42,9 @@ void ServerConfigurationJoinInfo::read(ReadOnlyBinaryStream &stream, bool manage
         if (mPresenceConfiguration.mHasRichPresenceId)
             mPresenceConfiguration.mRichPresenceId = stream.getString();
     }
-    mHasManagedChatJoinInfo = managedChat && stream.getBool();
-    if (mHasManagedChatJoinInfo)
-        mManagedChatJoinInfo.mEnabled = stream.getBool();
+
+    mHasManagedChat = managedChat && stream.getOptionalPresent();
+    mManagedChat.mEnabled = mHasManagedChat && stream.getBool();
 }
 
 GameRuleData GameRuleData::ofBool(const std::string &name, bool value, bool editable) {

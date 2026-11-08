@@ -484,6 +484,14 @@ const char *toString(MinecraftPacketIds id) {
             return "ServerboundRegisterAudioContent";
         case MinecraftPacketIds::Chat:
             return "Chat";
+        case MinecraftPacketIds::ServerboundRequestOnlineMusicPlayback:
+            return "ServerboundRequestOnlineMusicPlayback";
+        case MinecraftPacketIds::ClientboundOnlineMusicPlaybackResponse:
+            return "ClientboundOnlineMusicPlaybackResponse";
+        case MinecraftPacketIds::PlayerToggleArmorVisibilityRequest:
+            return "PlayerToggleArmorVisibilityRequest";
+        case MinecraftPacketIds::ClientboundMusicPlaybackFailure:
+            return "ClientboundMusicPlaybackFailure";
         default:
             return "Unknown";
     }
