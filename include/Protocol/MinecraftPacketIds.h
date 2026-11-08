@@ -251,7 +251,12 @@ enum class MinecraftPacketIds : int {
     SetPassengerOfBlock = 357,
     ServerboundCursorItemDrag = 358,
     ClientboundPlayAudioContent = 359,
-    ServerboundRegisterAudioContent = 360
+    ServerboundRegisterAudioContent = 360,
+    Chat = 361,
+    ServerboundRequestOnlineMusicPlayback = 362,
+    ClientboundOnlineMusicPlaybackResponse = 363,
+    PlayerToggleArmorVisibilityRequest = 364,
+    ClientboundMusicPlaybackFailure = 365
 };
 
 const char *toString(MinecraftPacketIds id);

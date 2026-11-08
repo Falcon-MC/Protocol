@@ -38,8 +38,10 @@ public:
     std::vector<std::pair<std::string, DataStoreChangeValue>> mMapValue;
 };
 
+// 2250 sends only mVariableName; 2225 and older the data store, property and path
 class DataStoreUpdate {
 public:
+    std::string mVariableName;
     std::string mDataStoreName;
     std::string mProperty;
     std::string mPath;
@@ -50,6 +52,8 @@ public:
 
 class DataStoreChange {
 public:
+    std::string mVariableName;
+    DataStoreScalar mNewVariableValue;
     std::string mDataStoreName;
     std::string mProperty;
     int32_t mUpdateCount = 0;
@@ -58,6 +62,7 @@ public:
 
 class DataStoreRemoval {
 public:
+    std::string mVariableName;
     std::string mDataStoreName;
 };
 

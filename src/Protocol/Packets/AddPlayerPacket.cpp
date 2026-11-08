@@ -26,7 +26,8 @@ void AddPlayerPacket::write(BinaryStream &stream, const PacketCodecContext &cont
     }
 
     if (context.getCapabilities().mPassengerOfBlock)
-        EntityCodec::writePassengerOfBlock(stream, mHasPassengerOfBlock, mPassengerOfBlock);
+        EntityCodec::writePassengerOfBlock(stream, mHasPassengerOfBlock, mPassengerOfBlock,
+                                           context.getCapabilities().mPassengerOfBlockType);
     stream.putString(mDeviceId);
     stream.putLInt((uint32_t) mBuildPlatform);
 }
@@ -52,7 +53,8 @@ void AddPlayerPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContex
     }
 
     mHasPassengerOfBlock = context.getCapabilities().mPassengerOfBlock
-                           && EntityCodec::readPassengerOfBlock(stream, mPassengerOfBlock);
+                           && EntityCodec::readPassengerOfBlock(stream, mPassengerOfBlock,
+                                                                context.getCapabilities().mPassengerOfBlockType);
     mDeviceId = stream.getString();
     mBuildPlatform = (int32_t) stream.getLInt();
 }
