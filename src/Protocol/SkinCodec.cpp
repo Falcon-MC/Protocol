@@ -1,5 +1,9 @@
 #include "Protocol/SkinCodec.h"
 
+#include "Core/Utility/BinaryDataException.h"
+
+#include <string>
+
 void SkinCodec::writeImage(BinaryStream &stream, const SkinImageData &image) {
     stream.putLInt((uint32_t) image.mWidth);
     stream.putLInt((uint32_t) image.mHeight);
@@ -87,7 +91,10 @@ SerializedSkin SkinCodec::readSkin(ReadOnlyBinaryStream &stream, std::string *ou
     skin.mSkinResourcePatch = stream.getString();
     skin.mSkinData = readImage(stream);
 
+    // an entry is a byte at least: a count the packet cannot hold must not size the allocation
     const uint32_t animationCount = stream.getUnsignedVarInt();
+    if (animationCount > stream.getRemainingLength())
+        throw BinaryDataException("Skin animation count " + std::to_string(animationCount) + " exceeds the packet");
     skin.mAnimations.reserve(animationCount);
     for (uint32_t i = 0; i < animationCount; i++)
         skin.mAnimations.push_back(readAnimation(stream));
@@ -103,6 +110,8 @@ SerializedSkin SkinCodec::readSkin(ReadOnlyBinaryStream &stream, std::string *ou
     skin.mColorArgb = (int32_t) stream.getLInt();
 
     const uint32_t pieceCount = stream.getUnsignedVarInt();
+    if (pieceCount > stream.getRemainingLength())
+        throw BinaryDataException("Persona piece count " + std::to_string(pieceCount) + " exceeds the packet");
     skin.mPersonaPieces.reserve(pieceCount);
     for (uint32_t i = 0; i < pieceCount; i++) {
         PersonaPieceData piece;
@@ -115,6 +124,8 @@ SerializedSkin SkinCodec::readSkin(ReadOnlyBinaryStream &stream, std::string *ou
     }
 
     const uint32_t tintCount = stream.getUnsignedVarInt();
+    if (tintCount > stream.getRemainingLength())
+        throw BinaryDataException("Persona tint count " + std::to_string(tintCount) + " exceeds the packet");
     skin.mTintColors.reserve(tintCount);
     for (uint32_t i = 0; i < tintCount; i++) {
         PersonaPieceTintData tint;

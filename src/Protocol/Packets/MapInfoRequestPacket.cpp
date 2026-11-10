@@ -1,5 +1,9 @@
 #include "Protocol/Packets/MapInfoRequestPacket.h"
 
+#include "Core/Utility/BinaryDataException.h"
+
+#include <string>
+
 #include "Protocol/NetworkPacketHandler.h"
 
 MapInfoRequestPacket::MapInfoRequestPacket() = default;
@@ -18,6 +22,9 @@ void MapInfoRequestPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecC
     mUniqueMapId = stream.getVarLong();
 
     uint32_t count = stream.getLInt();
+    // six bytes a pixel: a count the packet cannot hold must not size the allocation
+    if (count > stream.getRemainingLength() / 6)
+        throw BinaryDataException("Map pixel count " + std::to_string(count) + " exceeds the packet");
     mPixels.clear();
     mPixels.reserve(count);
     for (uint32_t i = 0; i < count; i++) {

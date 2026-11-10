@@ -1,5 +1,9 @@
 #include "Protocol/Packets/PlayerAuthInputPacket.h"
 
+#include "Core/Utility/BinaryDataException.h"
+
+#include <string>
+
 #include "Protocol/InventoryCodec.h"
 #include "Protocol/NetworkPacketHandler.h"
 
@@ -85,6 +89,9 @@ void PlayerAuthInputPacket::read(ReadOnlyBinaryStream &stream, const PacketCodec
 
     if (!context.getCapabilities().mDoubledPresence || stream.getBool()) {
         uint32_t inputCount = stream.getUnsignedVarInt();
+        // an entry is a byte at least: a count the packet cannot hold must not size the allocation
+        if (inputCount > stream.getRemainingLength())
+            throw BinaryDataException("Input data count " + std::to_string(inputCount) + " exceeds the packet");
         mInputData.reserve(inputCount);
         for (uint32_t i = 0; i < inputCount; i++) {
             mInputData.push_back(stream.getVarInt());
@@ -111,6 +118,8 @@ void PlayerAuthInputPacket::read(ReadOnlyBinaryStream &stream, const PacketCodec
 
     if (context.getPresence(stream)) {
         uint32_t count = stream.getUnsignedVarInt();
+        if (count > stream.getRemainingLength())
+            throw BinaryDataException("Player action count " + std::to_string(count) + " exceeds the packet");
         mPlayerActions.reserve(count);
         for (uint32_t i = 0; i < count; i++) {
             mPlayerActions.push_back(InventoryCodec::readPlayerBlockActionData(stream));
