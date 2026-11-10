@@ -118,7 +118,8 @@ void PlayerAuthInputPacket::read(ReadOnlyBinaryStream &stream, const PacketCodec
 
     if (context.getPresence(stream)) {
         uint32_t count = stream.getUnsignedVarInt();
-        if (count > stream.getRemainingLength())
+        // an action, three coordinates and a face, a byte each at least
+        if (count > stream.getRemainingLength() / 5)
             throw BinaryDataException("Player action count " + std::to_string(count) + " exceeds the packet");
         mPlayerActions.reserve(count);
         for (uint32_t i = 0; i < count; i++) {
