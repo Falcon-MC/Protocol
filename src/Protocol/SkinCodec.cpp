@@ -1,5 +1,9 @@
 #include "Protocol/SkinCodec.h"
 
+#include "Core/Utility/BinaryDataException.h"
+
+#include <string>
+
 void SkinCodec::writeImage(BinaryStream &stream, const SkinImageData &image) {
     stream.putLInt((uint32_t) image.mWidth);
     stream.putLInt((uint32_t) image.mHeight);
@@ -87,7 +91,11 @@ SerializedSkin SkinCodec::readSkin(ReadOnlyBinaryStream &stream, std::string *ou
     skin.mSkinResourcePatch = stream.getString();
     skin.mSkinData = readImage(stream);
 
+    // counts are held to what the packet can encode, by the smallest entry: image of two ints and an
+    // empty array (9), type, frames (4), expression
     const uint32_t animationCount = stream.getUnsignedVarInt();
+    if (animationCount > stream.getRemainingLength() / 15)
+        throw BinaryDataException("Skin animation count " + std::to_string(animationCount) + " exceeds the packet");
     skin.mAnimations.reserve(animationCount);
     for (uint32_t i = 0; i < animationCount; i++)
         skin.mAnimations.push_back(readAnimation(stream));
@@ -103,6 +111,9 @@ SerializedSkin SkinCodec::readSkin(ReadOnlyBinaryStream &stream, std::string *ou
     skin.mColorArgb = (int32_t) stream.getLInt();
 
     const uint32_t pieceCount = stream.getUnsignedVarInt();
+    // two empty strings, a type (4), a pack id (16), a flag
+    if (pieceCount > stream.getRemainingLength() / 23)
+        throw BinaryDataException("Persona piece count " + std::to_string(pieceCount) + " exceeds the packet");
     skin.mPersonaPieces.reserve(pieceCount);
     for (uint32_t i = 0; i < pieceCount; i++) {
         PersonaPieceData piece;
@@ -115,6 +126,9 @@ SerializedSkin SkinCodec::readSkin(ReadOnlyBinaryStream &stream, std::string *ou
     }
 
     const uint32_t tintCount = stream.getUnsignedVarInt();
+    // an empty string and four colours
+    if (tintCount > stream.getRemainingLength() / 17)
+        throw BinaryDataException("Persona tint count " + std::to_string(tintCount) + " exceeds the packet");
     skin.mTintColors.reserve(tintCount);
     for (uint32_t i = 0; i < tintCount; i++) {
         PersonaPieceTintData tint;
