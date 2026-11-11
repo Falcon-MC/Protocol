@@ -44,6 +44,47 @@ int main() {
         require(value.mType == DataStoreChangeValueType::Map, "shallow map lost its type");
         require(value.mMapValue.size() == 1, "shallow map lost its entry");
 
+        // double (3) and array (5) round trip; an array nests values like a map
+        DataStoreChangeValue element;
+        element.mType = DataStoreChangeValueType::Double;
+        element.mDoubleValue = 2.5;
+        DataStoreChangeValue text;
+        text.mType = DataStoreChangeValueType::String;
+        text.mStringValue = "label";
+        DataStoreChangeValue array;
+        array.mType = DataStoreChangeValueType::Array;
+        array.mArrayValue = {element, text};
+        BinaryStream arrayWire;
+        DataStoreCodec::writeChangeValue(arrayWire, array);
+        ReadOnlyBinaryStream arrayInput(arrayWire.getBuffer());
+        require(arrayInput.getLInt() == 5, "array was not written with type 5");
+        require(arrayInput.getUnsignedVarInt() == 2, "array count was not a varuint");
+        require(arrayInput.getLInt() == 3, "double was not written with type 3");
+        require(arrayInput.getLDouble() == 2.5, "double was not written as a little endian double");
+        ReadOnlyBinaryStream roundTripInput(arrayWire.getBuffer());
+        const DataStoreChangeValue decoded = DataStoreCodec::readChangeValue(roundTripInput);
+        require(decoded.mType == DataStoreChangeValueType::Array, "array lost its type");
+        require(decoded.mArrayValue.size() == 2, "array lost its entries");
+        require(decoded.mArrayValue[0].mType == DataStoreChangeValueType::Double, "array entry lost its type");
+        require(decoded.mArrayValue[0].mDoubleValue == 2.5, "array entry lost its value");
+        require(decoded.mArrayValue[1].mStringValue == "label", "array string entry lost its value");
+
+        // arrays count toward the nesting bound as maps do
+        BinaryStream deepArray;
+        for (int i = 0; i < depth; ++i) {
+            deepArray.putLInt(5);
+            deepArray.putUnsignedVarInt(1);
+        }
+        deepArray.putLInt(0);
+        ReadOnlyBinaryStream deepArrayInput(deepArray.getBuffer());
+        bool arrayThrew = false;
+        try {
+            DataStoreCodec::readChangeValue(deepArrayInput);
+        } catch (const BinaryDataException &) {
+            arrayThrew = true;
+        }
+        require(arrayThrew, "deeply nested data store array was not rejected");
+
         std::cout << "DataStore decode tests passed" << std::endl;
         return 0;
     } catch (const std::exception &error) {

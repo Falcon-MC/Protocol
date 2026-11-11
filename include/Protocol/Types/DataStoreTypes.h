@@ -25,7 +25,9 @@ enum class DataStoreChangeValueType {
     Null,
     Bool,
     Long,
+    Double,
     String,
+    Array,
     Map,
 };
 
@@ -34,7 +36,9 @@ public:
     DataStoreChangeValueType mType = DataStoreChangeValueType::Null;
     bool mBoolValue = false;
     int64_t mLongValue = 0;
+    double mDoubleValue = 0.0;
     std::string mStringValue;
+    std::vector<DataStoreChangeValue> mArrayValue;
     std::vector<std::pair<std::string, DataStoreChangeValue>> mMapValue;
 };
 
