@@ -6,10 +6,10 @@ class SignedChat {
 public:
     std::string mKeyId;
     std::string mSenderId;
-    std::string mRoomId;
     std::string mMessageId;
     std::string mScanText;
     std::string mRedactedText;
+    std::string mAuthorName;
     std::string mSignature;
 };
 

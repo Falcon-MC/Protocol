@@ -26,11 +26,16 @@ void ChatPacket::write(BinaryStream &stream, const PacketCodecContext &context) 
     // the signed block is relayed byte for byte: receivers check the signature over it
     stream.putString(mSignedChat.mKeyId);
     stream.putString(mSignedChat.mSenderId);
-    stream.putString(mSignedChat.mRoomId);
     stream.putString(mSignedChat.mMessageId);
     stream.putString(mSignedChat.mScanText);
     stream.putString(mSignedChat.mRedactedText);
+    stream.putString(mSignedChat.mAuthorName);
     stream.putString(mSignedChat.mSignature);
+
+    // outside the signature: the hosting server picks the room
+    stream.putOptionalPresent(mHasRoomId);
+    if (mHasRoomId)
+        stream.putString(mRoomId);
 
     stream.putOptionalPresent(mHasFormatting);
     if (!mHasFormatting)
@@ -45,11 +50,14 @@ void ChatPacket::write(BinaryStream &stream, const PacketCodecContext &context) 
 void ChatPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
     mSignedChat.mKeyId = stream.getString();
     mSignedChat.mSenderId = stream.getString();
-    mSignedChat.mRoomId = stream.getString();
     mSignedChat.mMessageId = stream.getString();
     mSignedChat.mScanText = stream.getString();
     mSignedChat.mRedactedText = stream.getString();
+    mSignedChat.mAuthorName = stream.getString();
     mSignedChat.mSignature = stream.getString();
+
+    mHasRoomId = stream.getOptionalPresent();
+    mRoomId = mHasRoomId ? stream.getString() : std::string();
 
     mFormatting = ChatFormatting();
     mHasFormatting = stream.getOptionalPresent();

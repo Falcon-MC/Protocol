@@ -48,4 +48,6 @@ public:
     float mPlaybackPositionSeconds = 0.0f;
     bool mHasStartDelay = false;
     float mStartDelaySeconds = 0.0f;
+    bool mHasAttachedActor = false;
+    uint64_t mAttachedActorRuntimeId = 0;
 };

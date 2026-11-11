@@ -49,6 +49,10 @@ struct ProtocolCapabilities {
     bool mCommandRawMessage = true;
     bool mEditorPackTypes = true;
 
+    bool mPlaySoundAttach = true;
+    bool mPassengerOfBlockPack = true;
+    bool mSctpRecoveryProfile = true;
+
     // data store records name one flat variable, not a data store, property and path
     bool mDataStoreVariables = true;
 };

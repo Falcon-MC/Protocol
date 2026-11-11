@@ -18,6 +18,9 @@ namespace Codec2225 {
         capabilities.mCommandRawMessage = false;
         capabilities.mEditorPackTypes = false;
         capabilities.mDataStoreVariables = false;
+        capabilities.mPlaySoundAttach = false;
+        capabilities.mPassengerOfBlockPack = false;
+        capabilities.mSctpRecoveryProfile = false;
         return capabilities;
     }
 
@@ -30,6 +33,8 @@ namespace Codec2225 {
         codec.removePacket(MinecraftPacketIds::ClientboundOnlineMusicPlaybackResponse);
         codec.removePacket(MinecraftPacketIds::PlayerToggleArmorVisibilityRequest);
         codec.removePacket(MinecraftPacketIds::ClientboundMusicPlaybackFailure);
+        codec.removePacket(MinecraftPacketIds::VirtualContainerOpen);
+        codec.removePacket(MinecraftPacketIds::VirtualContainerClose);
     }
 
     std::shared_ptr<const ProtocolCodec> create() {

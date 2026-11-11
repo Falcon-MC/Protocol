@@ -24,6 +24,8 @@ public:
     void handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const override;
 
     SignedChat mSignedChat;
+    bool mHasRoomId = false;
+    std::string mRoomId;
     bool mHasFormatting = false;
     ChatFormatting mFormatting;
 };

@@ -33,7 +33,8 @@ void AddActorPacket::write(BinaryStream &stream, const PacketCodecContext &conte
 
     if (context.getCapabilities().mPassengerOfBlock)
         EntityCodec::writePassengerOfBlock(stream, mHasPassengerOfBlock, mPassengerOfBlock,
-                                           context.getCapabilities().mPassengerOfBlockType);
+                                           context.getCapabilities().mPassengerOfBlockType,
+                                                                context.getCapabilities().mPassengerOfBlockPack);
 }
 
 void AddActorPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
@@ -71,7 +72,8 @@ void AddActorPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext
 
     mHasPassengerOfBlock = context.getCapabilities().mPassengerOfBlock
                            && EntityCodec::readPassengerOfBlock(stream, mPassengerOfBlock,
-                                                                context.getCapabilities().mPassengerOfBlockType);
+                                                                context.getCapabilities().mPassengerOfBlockType,
+                                           context.getCapabilities().mPassengerOfBlockPack);
 }
 
 void AddActorPacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {

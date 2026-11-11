@@ -145,6 +145,8 @@ class ServerboundRequestOnlineMusicPlaybackPacket;
 class ClientboundOnlineMusicPlaybackResponsePacket;
 class PlayerToggleArmorVisibilityRequestPacket;
 class ClientboundMusicPlaybackFailurePacket;
+class VirtualContainerOpenPacket;
+class VirtualContainerClosePacket;
 class PhotoInfoRequestPacket;
 class PhotoTransferPacket;
 class PlayStatusPacket;
@@ -546,6 +548,10 @@ public:
     virtual void handle(const NetworkIdentifier &, const PlayerToggleArmorVisibilityRequestPacket &) {}
 
     virtual void handle(const NetworkIdentifier &, const ClientboundMusicPlaybackFailurePacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const VirtualContainerOpenPacket &) {}
+
+    virtual void handle(const NetworkIdentifier &, const VirtualContainerClosePacket &) {}
 
     virtual void handle(const NetworkIdentifier &, const PhotoInfoRequestPacket &) {}
 

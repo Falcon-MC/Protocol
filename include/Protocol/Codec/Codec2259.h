@@ -4,10 +4,10 @@
 
 #include <memory>
 
-namespace Codec2250 {
+namespace Codec2259 {
 
     /**
-     * Protocol 2250, Minecraft 1.26.70: every packet keeps its own read and write.
+     * Protocol 2259, Minecraft 1.26.70: every packet keeps its own read and write.
      */
     std::shared_ptr<const ProtocolCodec> create();
 

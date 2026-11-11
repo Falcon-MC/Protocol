@@ -252,6 +252,8 @@
 #include "Protocol/Packets/UpdateSoftEnumPacket.h"
 #include "Protocol/Packets/UpdateSubChunkBlocksPacket.h"
 #include "Protocol/Packets/UpdateTradePacket.h"
+#include "Protocol/Packets/VirtualContainerClosePacket.h"
+#include "Protocol/Packets/VirtualContainerOpenPacket.h"
 #include "Protocol/Packets/LecternUpdatePacket.h"
 #include "Protocol/Packets/VoxelShapesPacket.h"
 
@@ -531,6 +533,8 @@ void MinecraftPackets::registerVanillaPackets(ProtocolCodec &codec) {
     codec.registerPacket<UpdateSoftEnumPacket>();
     codec.registerPacket<UpdateSubChunkBlocksPacket>();
     codec.registerPacket<UpdateTradePacket>();
+    codec.registerPacket<VirtualContainerClosePacket>();
+    codec.registerPacket<VirtualContainerOpenPacket>();
     codec.registerPacket<LecternUpdatePacket>();
     codec.registerPacket<VoxelShapesPacket>();
 }

@@ -2,6 +2,7 @@
 
 #include "Core/Math/Vector3f.h"
 #include "Core/Math/Vector3i.h"
+#include "Core/Utility/UUID.h"
 
 #include <cstdint>
 
@@ -21,4 +22,7 @@ public:
 
     // hashed serialized id of the block the passenger sits on
     uint64_t mBlockType = 0;
+
+    // pack defining the block, nil for vanilla blocks
+    Uuid mPackId;
 };

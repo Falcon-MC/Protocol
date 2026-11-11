@@ -75,6 +75,7 @@ enum class ContainerSlotType {
     DiscPressDyeContainer,
     DiscPressDiscContainer,
     DiscPressResultPreviewContainer,
+    VirtualContainer,
 };
 
 int32_t containerSlotTypeToId(ContainerSlotType type);

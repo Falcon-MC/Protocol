@@ -492,6 +492,10 @@ const char *toString(MinecraftPacketIds id) {
             return "PlayerToggleArmorVisibilityRequest";
         case MinecraftPacketIds::ClientboundMusicPlaybackFailure:
             return "ClientboundMusicPlaybackFailure";
+        case MinecraftPacketIds::VirtualContainerOpen:
+            return "VirtualContainerOpen";
+        case MinecraftPacketIds::VirtualContainerClose:
+            return "VirtualContainerClose";
         default:
             return "Unknown";
     }

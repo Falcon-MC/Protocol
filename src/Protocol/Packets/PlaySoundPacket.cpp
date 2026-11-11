@@ -34,6 +34,12 @@ void PlaySoundPacket::write(BinaryStream &stream, const PacketCodecContext &cont
         if (mHasStartDelay)
             stream.putLFloat(mStartDelaySeconds);
     }
+
+    if (context.getCapabilities().mPlaySoundAttach) {
+        stream.putOptionalPresent(mHasAttachedActor);
+        if (mHasAttachedActor)
+            stream.putUnsignedVarLong(mAttachedActorRuntimeId);
+    }
 }
 
 void PlaySoundPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContext &context) {
@@ -62,6 +68,10 @@ void PlaySoundPacket::read(ReadOnlyBinaryStream &stream, const PacketCodecContex
     mHasStartDelay = context.getCapabilities().mPlaySoundStartDelay && stream.getOptionalPresent();
     if (mHasStartDelay)
         mStartDelaySeconds = stream.getLFloat();
+
+    mHasAttachedActor = context.getCapabilities().mPlaySoundAttach && stream.getOptionalPresent();
+    if (mHasAttachedActor)
+        mAttachedActorRuntimeId = stream.getUnsignedVarLong();
 }
 
 void PlaySoundPacket::handle(const NetworkIdentifier &id, NetworkPacketHandler &handler) const {
