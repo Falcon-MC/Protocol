@@ -64,9 +64,20 @@ void DataStoreCodec::writeChangeValue(BinaryStream &stream, const DataStoreChang
             stream.putLInt(2);
             stream.putLLong((uint64_t) value.mLongValue);
             break;
+        case DataStoreChangeValueType::Double:
+            stream.putLInt(3);
+            stream.putLDouble(value.mDoubleValue);
+            break;
         case DataStoreChangeValueType::String:
             stream.putLInt(4);
             stream.putString(value.mStringValue);
+            break;
+        case DataStoreChangeValueType::Array:
+            stream.putLInt(5);
+            stream.putUnsignedVarInt((uint32_t) value.mArrayValue.size());
+            for (const DataStoreChangeValue &entry: value.mArrayValue) {
+                writeChangeValue(stream, entry);
+            }
             break;
         case DataStoreChangeValueType::Map:
             stream.putLInt(6);
@@ -80,7 +91,7 @@ void DataStoreCodec::writeChangeValue(BinaryStream &stream, const DataStoreChang
 }
 
 DataStoreChangeValue DataStoreCodec::readChangeValue(ReadOnlyBinaryStream &stream, int depth) {
-    // a map value nests another change value, so a crafted chain would recurse without this bound
+    // map and array values nest another change value, so a crafted chain would recurse without this bound
     static const int MAX_DEPTH = 16;
     if (depth > MAX_DEPTH)
         throw BinaryDataException("Data store change value is nested too deeply");
@@ -99,10 +110,23 @@ DataStoreChangeValue DataStoreCodec::readChangeValue(ReadOnlyBinaryStream &strea
             value.mType = DataStoreChangeValueType::Long;
             value.mLongValue = (int64_t) stream.getLLong();
             break;
+        case 3:
+            value.mType = DataStoreChangeValueType::Double;
+            value.mDoubleValue = stream.getLDouble();
+            break;
         case 4:
             value.mType = DataStoreChangeValueType::String;
             value.mStringValue = stream.getString();
             break;
+        case 5: {
+            value.mType = DataStoreChangeValueType::Array;
+            uint32_t size = stream.getArrayLength();
+            value.mArrayValue.reserve(size);
+            for (uint32_t i = 0; i < size; i++) {
+                value.mArrayValue.push_back(readChangeValue(stream, depth + 1));
+            }
+            break;
+        }
         case 6: {
             value.mType = DataStoreChangeValueType::Map;
             uint32_t size = stream.getArrayLength();
