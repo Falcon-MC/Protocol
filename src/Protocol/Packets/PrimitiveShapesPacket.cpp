@@ -68,9 +68,9 @@ namespace {
         if (shape.mHasDimension)
             stream.putVarInt(shape.mDimension);
 
-    stream.putOptionalPresent(shape.mHasAttachedToActorId);
-    if (shape.mHasAttachedToActorId)
-        stream.putVarLong((int64_t) shape.mAttachedToActorId);
+        stream.putOptionalPresent(shape.mHasAttachedToActorId);
+        if (shape.mHasAttachedToActorId)
+            stream.putVarLong((int64_t) shape.mAttachedToActorId);
 
         stream.putUnsignedVarInt((uint32_t) toPayloadType(shape.mHasType, shape.mType));
 
@@ -116,8 +116,7 @@ namespace {
                 stream.putBool(shape.mShowTextBackface);
                 break;
             case DebugShapeType::Cylinder:
-                stream.putVector2f(shape.mRadiusX);
-                stream.putVector2f(shape.mRadiusZ);
+                stream.putVector2f(shape.mRadii2f);
                 stream.putLFloat(shape.mHeight);
                 stream.putByte((unsigned char) shape.mSegments);
                 break;
@@ -176,9 +175,9 @@ namespace {
         if (shape.mHasDimension)
             shape.mDimension = stream.getVarInt();
 
-    shape.mHasAttachedToActorId = stream.getOptionalPresent();
-    if (shape.mHasAttachedToActorId)
-        shape.mAttachedToActorId = (uint64_t) stream.getVarLong();
+        shape.mHasAttachedToActorId = stream.getOptionalPresent();
+        if (shape.mHasAttachedToActorId)
+            shape.mAttachedToActorId = (uint64_t) stream.getVarLong();
 
         stream.getUnsignedVarInt();
 
@@ -224,8 +223,7 @@ namespace {
                 shape.mShowTextBackface = stream.getBool();
                 break;
             case DebugShapeType::Cylinder:
-                shape.mRadiusX = stream.getVector2f();
-                shape.mRadiusZ = stream.getVector2f();
+                shape.mRadii2f = stream.getVector2f();
                 shape.mHeight = stream.getLFloat();
                 shape.mSegments = stream.getByte();
                 break;
@@ -256,7 +254,7 @@ PrimitiveShapesPacket::PrimitiveShapesPacket() = default;
 
 void PrimitiveShapesPacket::write(BinaryStream &stream, const PacketCodecContext &context) const {
     stream.putArrayLength((uint32_t) mShapes.size());
-    for (const DebugShapeData &shape : mShapes) {
+    for (const DebugShapeData &shape: mShapes) {
         writeShape(stream, shape);
     }
 }

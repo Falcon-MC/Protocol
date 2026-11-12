@@ -76,14 +76,13 @@ public:
     bool mShowBackface = false;
     bool mShowTextBackface = false;
 
-    Vector2f mRadiusX;
-    Vector2f mRadiusZ;
     float mHeight = 0.0f;
 
     float mWidth = 0.0f;
     bool mHasDepth = false;
     float mDepth = 0.0f;
 
+    // cylinder and cone: x the bottom radius, y the top one
     Vector2f mRadii2f;
     Vector3f mRadii3f;
 };
